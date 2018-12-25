@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+	<link rel="stylesheet" href="{{ asset('build/vendor.css') }}" />
+	<script src="{{ asset('build/manifest.js') }}"></script>
+	<script src="{{ asset('build/vendor.js') }}"></script>
+	<script src="{{ asset('build/js/utils.js') }}"></script>
+{% endblock %}
+
+{% block body %}
+<form action="{{ path('login') }}" method="post" style="border: 1px solid black; padding: 15px; border-radius: 5px; background-color: #eeeeec; margin-left: auto; margin-right: auto; width: 400px;">
+	<div style="text-align:center; font-size: 110%; margin-bottom: 20px; font-weight: bold;">Inicio de Sesión</div>
+	<div class="form-group form-row">
+		<label for="username" class="col-md-6">Nome de Usuario: </label>
+		<input class="col-md-6" type="text" id="username" name="_username" value="{{ last_username }}" />
+	</div>
+	<div class="form-group form-row">
+		<label for="password" class="col-md-6">Contrasinal: </label>
+		<input class="col-md-6" type="password" id="password" name="_password" />
+	</div>
+
+	<input type="hidden" name="_target_path" value="{{ path('index') }}" />
+
+	<div style="text-align: center">
+    <button class='btn btn-primary' type="submit"><i class="fa fa-sign-in-alt"></i>Acceder</button>
+	</div>
+</form>
+
+{% if error %}
+<script>
+	$(document).ready(function() {
+		messageAlert("{{ error.messageKey|trans(error.messageData, 'security') }}",ERROR,2000); 
+	});
+</script>
+{% endif %}
+
+{% endblock %}

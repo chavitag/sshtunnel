@@ -1,0 +1,199 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+	{{ parent() }}
+
+	<link rel="stylesheet" href="{{ asset('build/vendor.css') }}" />
+	<link rel="stylesheet" href="{{ asset('build/css/onoff.css') }}">
+	<link rel="stylesheet" href="{{ asset('build/css/bootstrap-table.css') }}">
+	<link rel="stylesheet" href="{{ asset('build/css/bootstrap-table-fine.css') }}">
+	<link rel="stylesheet" href="{{ asset('build/css/bootstrap-select.css') }}">
+	<link rel="stylesheet" href="{{ asset('build/css/bootstrap-table-filter-row.css') }}">
+
+	<style>
+
+	.panel {
+		height: calc( 100% - 180px ); 
+		width: calc( 100% - 80px );
+		border :1px solid black;
+		margin: 0px;
+		padding :4px;
+		position: fixed;
+		top: 100px;
+		left: 40px;
+		display: none;
+		background-color: white;
+		z-index: 2;
+		border: 1px solid black;
+	}
+	</style>
+
+	<script src="{{ asset('build/manifest.js') }}"></script>
+	<script src="{{ asset('build/vendor.js') }}"></script>
+   <script src="{{ asset('build/js/twigjs.js') }}"></script>
+   <script src="{{ asset('build/js/utils.js') }}"></script>
+
+	<script src="{{ asset('build/js/bootstrap-table.js') }}"></script>
+	<script src="{{ asset('build/js/bootstrap-table-locale-es.js') }}"></script>
+	<script src="{{ asset('build/js/bootstrap-table-resizable.js') }}"></script>
+	<script src="https://rawgit.com/wenzhixin/colResizable/master/source/colResizable-1.5.source.js"></script>
+	<script src="{{ asset('build/js/bootstrap-select.js') }}"></script>
+	<script src="{{ asset('build/js/bootstrap-table-filter-row.js') }}"></script>
+{% endblock %}
+
+{% block logged %}
+	<div class='logged'>
+		<div style="display: inline-block; margin-right: 20px;">{{user.name}}</div>
+		<div style="display: inline-block; margin-right: 20px;">{{user.rol.name}}</div>
+		<div style="display: inline-block; margin-right: 10px; cursor: pointer;"><i onclick="settings()" class="fa fa-cog"></i></div>
+		<div style="display: inline-block; margin-right: 10px; cursor: pointer;"><i onclick="document.location='/logout'" class="fa fa-sign-out"></i></div>
+	</div>
+{% endblock %}
+
+{% block body %}
+
+<div class="container" style='height: 520px; overflow: auto; font-size: 80%; margin: 0px auto 0px auto;' >
+	{% include "widgets/table.html.twig" with 
+		{	
+			"idtable":"TABLETUNNELS",
+			"ajaxurl":"/list/tunnels.json",
+			"commandlist":"l_tunnels",
+			"checkbox":true,
+			"filterControl":false,
+			"buttons": [
+				{"id":"btn-delete","callback":"delTunnel","txt":"Borrar Túnel","class":"btn btn-danger", "status":"disabled", "icon":"fa fa-times" },
+				{"id":"btn-add","txt": "Novo Túnel","class":"btn btn-primary", "callback":"newTunnel", "icon":"fa fa-plus" },
+				{"id":"btn-wakeup","txt":"Encender Equipo","class":"btn btn-success","icon":"fa fa-desktop","callback":"wakeUp"},
+			],
+			"columns": [
+				{"field":"description","title":"Descripción","sortable":"true","width":"30%","filterControl":"input"},
+				{"field":"destination","title":"Destiño","width":"25%","filterControl":"select","filterData":'var:{"0":"a","1":"b","2":"c"}'},
+				{"field":"dport","title":"Porto","filterControl":"xxx"},
+				{"field":"url","title":"URL de Conexión","width":"25%"},
+				{"field":"status","formatter":"statusFormatterTunnel","title":"Estado","width":"96px"},
+			],
+			"data": tunnels
+		}
+	%}
+</div>
+
+<div id="settings" class="panel">
+	{% if user.rol.rol == "ADMIN" %}
+		Admin Panel
+	{% else %}
+		User Panel
+	{% endif %}
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+
+<script>
+	__select__content["destport"]={{services|json_encode|raw}};
+	__select__content["computers"]={{computers|json_encode|raw}};
+
+
+	function settings() {
+		$( "#settings" ).toggle("slow");
+
+	}
+
+	/* On/Off tunnel
+	*/
+	function setTunnel(event,sw,id,status) { alert(id); alert(status);
+		var $table=$("#TABLETUNNELS"); alert($table.data("data"));
+		var row=$(sw).closest("#TABLETUNNELS tr"); alert(row);
+		var idx=$(row).data("index");
+		var data=JSON.parse($table.data("data")); alert(JSON.stringify(data));
+		data.rows[idx].status=status;
+		$table.data("data",JSON.stringify(data));
+		callServer("/change/tunnel","id="+id+"&status="+status,reloadTable,"TABLETUNNELS");
+		/*var trow=$table.bootstrapTable("getRowByUniqueId",data.rows[idx].id);
+		trow.status=status;
+		$table.bootstrapTable("updateByUniqueId",data.rows[idx].id,trow);*/
+	}
+
+	function clearSelections() {
+		$("#TABLETUNNELS").bootstrapTable("uncheckAll");
+	}
+
+	function delTunnel(event) {
+		var $table=$("#TABLETUNNELS");
+		var selections=$table.bootstrapTable("getSelections");
+		var params={"tunnels": selections,"onclose":"clearSelections",
+						"buttons":[{"id":"deltunnelbtn","class":"btn btn-primary","txt":"Borrar","callback":"delTunnelAction"}] };
+		openModalTemplate('deltunnelconfirm','Está vostede seguro?',"_modalbody_deltunnel",params);
+		$(event.target).prop('disabled',true);
+	}
+
+	function delTunnelAction() {
+		var $table=$("#TABLETUNNELS");
+		var ids=[];
+		$("#_modal_deltunnelconfirm").modal("hide");
+		var idx=$table.bootstrapTable("getSelections");
+		idx.forEach(function(item,index) {
+			ids.push(item.id);
+		});
+		if (ids.length > 0)	callServer("/delete/tunnel","params="+JSON.stringify(ids),reloadTable,"TABLETUNNELS");
+	}
+
+
+	function newTunnel() {
+		var params={"services": __select__content["destport"],"computers": __select__content["computers"],"modalsize":"modal-lg","rol":"{{user.rol.rol}}",
+						"buttons":[{"id":"newtunnelbtn","class":"btn btn-primary","txt":"Gardar Túnel","callback":"saveTunnel"}] };
+		{% if user.rol.rol == "ADMIN" %}
+			params["navfunction"]="yes";
+		{% endif %}
+		openModalTemplate('service','Novo Túnel',"_modalbody_service",params);
+	}
+
+	function wakeUp() {
+		/*var params={"computers": __select__content["computers"],"rol":"{{user.rol.rol}}",
+						"buttons":[{"id":"wakeupbtn","class":"btn btn-primary","txt":"Encender","callback":"wake"}] };
+		{% if user.rol.rol == "ADMIN" %}
+			params["navfunction"]="yes";
+		{% endif %}*/
+		var params={"id":"wakeup","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}"};
+		openModalTemplate('wakeup','Encendido de Equipos',"_modalbody_computers",params);
+	}
+
+	function statusFormatterTunnel(value,row,index,field) {
+		var html="{{ include("widgets/switch.html.twig",{"id":"%rowid%", "name": "onofftunnel", "checked":"%status%","callback":"setTunnel"}) | escape("js")}}";
+		if (value) html=html.replace(/%status%/g,"checked");
+		else 		  html=html.replace(/%status%/g,"");
+		return html.replace(/%rowid%/g,row.id);
+	}
+
+	// Save Tunnel
+	//
+	function saveTunnel() {
+		var data=$("#dataAddTunnelForm").serializeJSON();
+		var info=JSON.parse($("#ip").data("data"));
+		$("#_modal_service").modal('hide');
+		callServer("/save/tunnel","params="+JSON.stringify(data),reloadTable,"TABLETUNNELS");
+		$('#dataAddTunnelForm')[0].reset();
+	}
+
+	// Computer On
+	function wake() {
+		var data=$("#computers").val();
+		alert(data);
+	}
+
+_twig_templates["modal"]="templates/widgets/modal.html.twig";
+_twig_templates["_modalbody_wakeup"]="templates/modals/wakeup.body.html.twig";
+_twig_templates["_modalbody_service"]="templates/modals/service.body.html.twig";
+_twig_templates["_modalbody_roles"]="templates/modals/roles.body.html.twig";
+_twig_templates["_modalbody_newrol"]="templates/modals/newroles.body.html.twig";
+_twig_templates["_modalbody_ports"]="templates/modals/ports.body.html.twig";
+_twig_templates["_modalbody_computers"]="templates/modals/computers.body.html.twig";
+_twig_templates["_modalbody_newcomputer"]="templates/modals/newcomputer.body.html.twig";
+_twig_templates["_modalbody_newservice"]="templates/modals/newservice.body.html.twig";
+_twig_templates["_modalbody_ip"]="templates/modals/computers.body.html.twig";
+_twig_templates["_modalbody_deltunnel"]="templates/modals/deltunnelconfirm.body.html.twig";
+_twig_templates["_select_template"]="templates/widgets/select.html.twig";
+</script>
+{% endblock %}
+
+

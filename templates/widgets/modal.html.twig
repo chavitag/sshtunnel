@@ -1,0 +1,42 @@
+<div class="modal fade" id="_modal_{{id}}" tabindex="-1" role="dialog" aria-labelledby="{{id}}_form" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog {{modalsize}}">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="{{id}}_FormLabel">{{title}}</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Pechar" data-id="_modal_{{id}}">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body" id="_modalbody_{{id}}">
+
+			</div>
+			<div class="modal-footer"> 
+				{% if onclose is defined %} {% set cb="onclick="~onclose~"()" %} {% else %} {% set cb="" %} {% endif %}
+				<button type="button" {{cb}} class="btn btn-secondary" data-dismiss="modal" aria-hidden="true" data-id="_modal_{{id}}">Pechar</button>
+				{% for b in buttons %}
+					{% if b.callback is defined %} {% set cb="onclick="~b.callback~"()" %} {% else %} {% set cb="" %} {% endif %}
+					{% if b.status is not defined %} {% set status="" %} {% else %} {% set status=b.status %} {%endif%}
+					{% if b.target is defined %} 
+						<button {{cb}} id="{{b.id}}" class="{{b.class}}" data-toggle="modal" href="#_modal_{{b.target}}" {{status}}>
+					{% else %}
+						<button {{cb}} id="{{b.id}}" class="{{b.class}}" {{status}}>
+					{% endif %}
+						<i class="{{b.icon}}"></i> {{b.txt}}
+						</button>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	$(document).ready(function() {
+		$("#_modal_{{id}}").draggable({
+	      handle: ".modal-header"
+	  });
+
+		$('#_modal_{{id}}').on('hidden.bs.modal', function (e) {
+			$(this).remove();
+		})
+	});
+</script>

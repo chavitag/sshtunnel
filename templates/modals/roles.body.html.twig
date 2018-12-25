@@ -1,0 +1,52 @@
+<div class="container" style='height: 409px; font-size: 80%; margin: 0px auto 0px auto; ' >
+{% if rol == "ADMIN" %}
+	{% include "widgets/table.html.twig" with 
+		{	"idtable":"__table__"~id,
+			"ajaxurl":"/list/roles.json",
+			"commandlist":"l_roles",
+			"checkbox":true,
+			"buttons": [
+				{"id":"btn-delete","callback":"delRole","txt":"Borrar","class":"btn btn-danger", "status":"disabled", "icon":"fa fa-times" },
+				{"id":"btn-add","txt": "Novo","class":"btn btn-primary", "callback":"newRole", "icon":"fa fa-plus" },
+			],
+			"columns": [
+				{"field":"name","title":"Descripción","sortable":"true","width":"70%"},
+				{"field":"rol","title":"ROL","width":"30%"},
+			],
+			data: data,
+		}
+	%}
+{% else %}
+	No Autorizado
+{% endif %}
+</div>
+
+<script>
+	function delRole() {
+		var $table=$("#__table__{{id}}");
+		var ids=[];
+		var idx=$table.bootstrapTable("getSelections");
+		idx.forEach(function(item,index) {
+			ids.push(item.id);
+		});
+		if (ids.length > 0)	callServer("/delete/rol","params="+JSON.stringify(ids),refreshRole,"__table__{{id}}");
+	}
+
+	function refreshRole(data,id) {
+		$("#btn-refresh-{{id}}").trigger("click");
+		reloadTable(data,id);
+	}
+
+	function newRole() {
+		var params={"modalsize":"","navfunction":"yes",
+						"buttons":[{"id":"newrolebtn","class":"btn btn-primary","txt":"Gardar Rol","callback":"saveRole"}] };
+		openModalTemplate('newrole','Novo Rol',"_modalbody_newrol",params);
+	}
+
+	function saveRole() {
+		var data=$("#dataAddRoleForm").serializeJSON();
+		$("#_modal_newrole").modal('hide');
+		callServer("/save/rol","params="+JSON.stringify(data),refreshRole,"__table__{{id}}");
+		$('#dataAddRoleForm')[0].reset();
+	}
+</script>

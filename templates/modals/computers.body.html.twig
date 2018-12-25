@@ -1,0 +1,158 @@
+{% if rol == "ADMIN" %}
+	{% set detailview = "adminComputerRoles" %}
+{% else %}
+	{% set detailview = '' %}
+{% endif %}
+
+<div class="container" style='height: 409px; font-size: 80%; margin: 0px auto 0px auto; ' >
+{% if rol == "ADMIN" %}
+	{% include "widgets/table.html.twig" with 
+		{	"idtable":"__table__"~id,
+			"ajaxurl":"/list/computers.json",
+			"commandlist":"l_computers",
+			"checkbox":true,
+			"select":id,
+			"detailview":detailview,
+			"clickevent":"selectRow",
+			"buttons": [
+				{"id":"btn-delete","callback":"delComputer","txt":"Borrar","class":"btn btn-danger", "status":"disabled", "icon":"fa fa-times" },
+				{"id":"btn-edit","txt": "Editar","class":"btn btn-success", "callback":"editComputer", "status":"disabled", "icon":"fa fa-edit" },
+				{"id":"btn-add","txt": "Novo","class":"btn btn-primary", "callback":"newComputer", "icon":"fa fa-plus" },
+			],
+			"columns": [
+				{"field":"description","title":"Descripción","sortable":"true","width":"48%"},
+				{"field":"domain","title":"Nombre Equipo (FQDN)","width":"23%"},
+				{"field":"ip","title":"Dirección IP","width":"12%"},
+				{"field":"mac","title":"Dirección MAC","width":"19%"},
+				{"field":"running","formatter":"statusFormatterComputer","title":"Estado","width":"78px"},
+			],
+			"data": data
+		}
+	%}
+{% else %}
+	{% include "widgets/table.html.twig" with 
+		{	"idtable":"__table__"~id,
+			"ajaxurl":"/list/computers.json",
+			"commandlist":"l_computers",
+			"checkbox":true,
+			"select":id,
+			"detailview":detailview,
+			"clickevent":"selectRow",
+			"columns": [
+				{"field":"description","title":"Descripción","sortable":"true","width":"48%"},
+				{"field":"domain","title":"Nombre Equipo (FQDN)","width":"23%"},
+				{"field":"ip","title":"Dirección IP","width":"12%"},
+				{"field":"mac","title":"Dirección MAC","width":"19%"},
+				{"field":"running","formatter":"statusFormatterComputer","title":"Estado","width":"78px"},
+			],
+			"data": data
+		}
+	%}
+{% endif %}
+</div>
+
+<script>
+	function renderComputerRoles(roles,params,context) {
+		context.css({"background-color":"lightgray"});
+		var selectDef={"idselect":"rolcomputer_"+params.id,"data":roles, "url":"/list/computer/roles.json","dataQuery":"id="+params.id, "title":"Roles","value":"rol", "text":"name","modalsize":"", "navfunction": "yes", "multiple":"yes","onchange":"updateComputerRoles","info":params.id,"rol":"{{rol}}","template":"_modalbody_roles"};
+		context.html('<div class="row" style="margin:2px;"><div class="col-md-2" style="font-size:1.4em;">Roles: </div><div class="col-md-10">'+renderTemplate("_select_template",selectDef)+'</div></div>');
+	}
+
+	function adminComputerRoles(ev,index,row,$detail) {
+		callServer("/list/computer/roles.json","id="+row.id,renderComputerRoles,row,"json",$detail);
+	}
+
+	function updateComputerRoles(select) {
+		var all=JSON.parse($(select).data("data"));
+		var query=[];
+		for(var idx in select.options) {
+			if (select.options[idx].selected) query.push(all.rows[idx].id);
+		}
+		callServer("/update/computer/roles","id="+$(select).data("info")+"&roles="+JSON.stringify(query));
+	}
+
+	function delComputer() {
+		var $table=$("#__table__{{id}}");
+		var ids=[];
+		var idx=$table.bootstrapTable("getSelections");
+		idx.forEach(function(item,index) {
+			ids.push(item.id);
+		});
+		if (ids.length > 0)	callServer("/delete/computer","params="+JSON.stringify(ids),reloadTable,"__table__{{id}}");
+	}
+
+	function newComputer(computer) {
+		var description="";
+		var domainname="";
+		var ip="";
+		var mac="";
+		var id="";
+
+		if (computer !== undefined) {
+			id=computer.id;
+			description=computer.description;
+			domainname=computer.domain;
+			ip=computer.ip;
+			mac=computer.mac;
+			
+		}
+		var params={"modalsize":"","navfunction":"yes","rol":"{{user.rol.rol}}","id":id,"description":description,"domainname":domainname,"ip":ip,"mac":mac,
+						"buttons":[{"id":"newcomputerbtn","class":"btn btn-primary","txt":"Gardar Equipo","callback":"saveComputer"}] };
+		openModalTemplate('newcomputer','Novo Equipo',"_modalbody_newcomputer",params);
+	}
+
+	function editComputer() {
+		var $table=$("#__table__{{id}}");
+		var selections=$table.bootstrapTable("getSelections");
+		if (selections.length > 0) {
+			newComputer(selections[0]);
+		} 
+	}
+
+	function saveComputer() {
+		var data=$("#dataAddComputerForm").serializeJSON();
+		$("#_modal_newcomputer").modal('hide');
+		callServer("/save/computer","params="+JSON.stringify(data),reloadTable,"__table__{{id}}");
+		$('#dataAddComputerForm')[0].reset();
+	}
+
+	function selectRow(row,$element,field,isdblclick) {
+		$(".row-selected").removeClass("row-selected");
+		$element.addClass("row-selected");
+		$("#{{id}}").selectpicker("val",row["ip"]);
+		if (isdblclick) $("#_modal_{{id}}").modal("hide");
+	}
+
+	/* On/Off Computer
+	*/
+	function switchComputer(event,sw,id,running) { 
+		if (running == false) {
+			messageAlert("No disponemos de la información necesaria para el apagado",WARNING,3000);
+			$(sw).prop("checked",true);
+			return;
+		}
+
+		var $table=$("#__table__{{id}}");
+		var row=$(sw).closest("#__table__{{id}} tr");
+		var idx=$(row).data("index");
+		var data=JSON.parse($table.data("data"));
+		if ((data.rows[idx].mac==null) && (running)) {
+			messageAlert("Imposible encender equipo, no disponemos de su dirección MAC",WARNING,3000);
+			$(sw).prop("checked",false);
+			return;
+		}
+		data.rows[idx].running=running;
+		$table.data("data",JSON.stringify(data));
+		alert("Switched..."+JSON.stringify(data.rows[idx]));
+	}
+
+	function statusFormatterComputer(value,row,index,field) { 
+		var html="{{ include("/templates/widgets/switch.html.twig",{"id":"%rowid%", "name": "onoffcomputer", "checked":"%status%","callback":"switchComputer"}) }}";
+
+		if (value) html=html.replace(/%status%/g,"checked");
+		else 		  html=html.replace(/%status%/g,"");
+		html=html.replace(/%rowid%/g,row.id)
+		var result = $('<textarea />').html(html).text();
+		return result;
+	}
+</script>

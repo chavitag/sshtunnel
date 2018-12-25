@@ -1,0 +1,17 @@
+{% if callback is defined %}
+	{% set cb = "onchange="~callback~"(event,this,'"~id~"',this.checked)" %}
+{% else %}
+	{% set cb = "" %}
+{% endif %}
+
+<div class="onoffswitch" style="margin-left: 8px">
+	<input type="checkbox" name="{{name}}" class="onoffswitch-checkbox" id="onoffswitch_{{id}}" {{cb}} {{checked}}>
+	<label class="onoffswitch-label" for="onoffswitch_{{id}}">
+		<div class="onoffswitch-inner"></div>
+		<div class="onoffswitch-switch"></div>
+	</label>
+</div>
+
+<script>
+	$(".onoffswitch").off("click").on("click",function(event) { event.stopPropagation(); } )
+</script>

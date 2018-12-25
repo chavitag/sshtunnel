@@ -1,0 +1,44 @@
+dn: CN=Canay Rey Óscar,OU=Usuarios,OU=ASIR,DC=asir,DC=iesrodeira,DC=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn:: Q2FuYXkgUmV5IMOTc2Nhcg==
+sn:: w5NzY2Fy
+title: 15157
+description: -
+physicalDeliveryOfficeName:: Q2FzaW1pcm8gR8OzbWV6LCAxMyAtIDbCuiBELCAtIFBvbnRld
+ mVkcmEgLSBQb250ZXZlZHJh
+telephoneNumber: -
+givenName: Canay Rey
+instanceType: 4
+whenCreated: 20150929220109.0Z
+whenChanged: 20150929220109.0Z
+displayName:: Q2FuYXkgUmV5IMOTc2Nhcg==
+uSNCreated: 99775
+department: 11-11-1980
+name:: Q2FuYXkgUmV5IMOTc2Nhcg==
+objectGUID: 3b5da2dd-5fae-4846-ac13-b8db3dc7e717
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+homeDirectory: \\RADAGAST\Datos\ocanay
+homeDrive: Z
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 0
+primaryGroupID: 513
+objectSid: S-1-5-21-244423807-3190759091-2273133264-1902
+accountExpires: 9223372036854775807
+logonCount: 0
+sAMAccountName: ocanay
+sAMAccountType: 805306368
+userPrincipalName: ocanay@asir.iesrodeira.com
+objectCategory: CN=Person,CN=Schema,CN=Configuration,DC=asir,DC=iesrodeira,DC=
+ com
+pwdLastSet: 0
+userAccountControl: 512
+uSNChanged: 99778
+distinguishedName:: Q049Q2FuYXkgUmV5IMOTc2NhcixPVT1Vc3VhcmlvcyxPVT1BU0lSLERDPW
+ FzaXIsREM9aWVzcm9kZWlyYSxEQz1jb20=
+

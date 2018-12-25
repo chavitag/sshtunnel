@@ -1,0 +1,12 @@
+Se borrarán los siguientes túneles:
+<ul>
+	{% for t in tunnels %}
+		<li><span style="font-weight:bold;">{{t.description}}</span>
+			<div style="font-size: 70%">
+				<span style="font-weight: bold">Desde</span>:  {{t.url}}<br/>
+				<span style="font-weight: bold">Hasta</span>:  {{t.destination}}<br/>
+				<span style="font-weight: bold">Puerto/Servicio</span>: {{t.dport}}
+			</div>
+		</li>
+	{% endfor %}
+</ul>

@@ -1,0 +1,12 @@
+.bootstrap-table .table:not(.table-condensed),
+.bootstrap-table .table:not(.table-condensed) > tbody > tr > th,
+.bootstrap-table .table:not(.table-condensed) > tfoot > tr > th,
+.bootstrap-table .table:not(.table-condensed) > thead > tr > td,
+.bootstrap-table .table:not(.table-condensed) > tbody > tr > td,
+.bootstrap-table .table:not(.table-condensed) > tfoot > tr > td {
+    padding: 2px;
+}
+
+.bootstrap-table .btn, .bootstrap-table .form-control, div.dropdown-menu, ul.dropdown-menu {
+	font-size: 100%;
+}

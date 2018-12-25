@@ -1,0 +1,40 @@
+.pagetitle {
+	background-color: #3465a4;
+	border-bottom: 2px solid gray;
+	height: 80px;
+	position: relative;
+	margin-bottom: 10px;
+}
+		
+.pagetitle .text {
+	font-size: 24pt;
+	font-weight: bold;
+	text-align: right;
+	color: #f3f3f3;
+	margin: 0px 20px 20px 20px;
+}
+
+.pagetitle .logo {
+	width: 370px;
+	height: 80px;
+	background-image: url("../images/logorodeira.jpg");
+	background-repeat: no-repeat;
+	background-size: 370px 80px;
+	float: left;
+}
+
+.pagetitle .logged {
+	font-size: 10pt;
+	color: white;
+	width: calc( 100% - 400px );
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+	text-align: right;
+}
+
+.btn-default {
+	color: #333;
+	background-color: #fff;
+	border-color: #ccc;
+}

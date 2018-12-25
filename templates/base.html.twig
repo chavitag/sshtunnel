@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>{% block title %}Configuración de Túneles SSH del IES de Rodeira{% endblock %}</title>
+		{% block stylesheets %}{% endblock %}
+		<link rel="stylesheet" href="{{ asset('build/css/main.css') }}" />
+  <script src="https://code.jquery.com/ui/1.11.3/jquery-ui.min.js"></script>
+		<style>
+			.row-selected {
+				color: blue;
+			}
+
+			div.bootstrap-table tr {
+				cursor: pointer;
+			}
+
+			.bst-search-row td input {
+				padding: 2px;
+			}
+		
+			.selectpicker .btn.dropdown-toggle {
+				padding: 2px;
+			}
+
+			.modal-dialog.modal-1024 {
+			    max-width: 1024px;
+			}
+
+			@media (min-width: 1360px) {
+				.container {
+				    max-width: 1280px;
+				}
+			}
+
+		</style>
+
+	</head>
+	<body>
+		<div class='pagetitle'>
+			<div class='logo'></div>
+			<div class='text'> Túneis SSH do IES de Rodeira </div>
+			{% block logged %} {% endblock %}
+		</div>
+		{% block body %}{% endblock %}
+		{% block alerts %}
+			<div id="alerts" style="display:none; z-index: 9999; position: fixed; bottom: 0px; width: 100%; padding: 5px; padding-bottom: 0px;">{%block alert%}{% endblock %}</div>
+		{% endblock %}
+		{% block javascripts %}{% endblock %}
+	</body>
+</html>

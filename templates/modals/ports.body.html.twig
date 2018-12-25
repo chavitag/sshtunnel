@@ -1,0 +1,78 @@
+{% if rol == "ADMIN" %}
+	{% set detailview = "adminServiceRoles" %}
+{% else %}
+	{% set detailview = '' %}
+{% endif %}
+
+<div class="container" style='height: 409px; font-size: 80%; margin: 0px auto 0px auto; ' >
+	{% include "widgets/table.html.twig" with 
+		{	"idtable":"__table__"~id,
+			"ajaxurl":"/list/services.json",
+			"commandlist":"l_services",
+			"checkbox":true,
+			"select":id,
+			"detailview":detailview,
+			"clickevent":"selectRow",
+			"buttons": [
+				{"id":"btn-delete","callback":"delService","txt":"Borrar","class":"btn btn-danger", "status":"disabled", "icon":"fa fa-times" },
+				{"id":"btn-add","txt": "Novo","class":"btn btn-primary", "callback":"newService", "icon":"fa fa-plus" },
+			],
+			"columns": [
+				{"field":"name","title":"Servicio","sortable":"true","width":"80%"},
+				{"field":"port","title":"Porto","width":"20%"},
+			],
+			"data": data
+		}
+	%}
+</div>
+
+<script>
+	function delService() {
+		var $table=$("#__table__{{id}}");
+		var ids=[];
+		var idx=$table.bootstrapTable("getSelections");
+		idx.forEach(function(item,index) {
+			ids.push(item.id);
+		});
+		if (ids.length > 0)	callServer("/delete/service","params="+JSON.stringify(ids),reloadTable,"__table__{{id}}");
+	}
+
+	function saveService() {
+		var data=$("#dataAddServiceForm").serializeJSON();
+		$("#_modal_newservice").modal('hide');
+		callServer("/save/service","params="+JSON.stringify(data),reloadTable,"__table__{{id}}");
+		$('#dataAddServiceForm')[0].reset();
+	}
+
+	function newService() {
+		var params={"modalsize":"","navfunction":"yes",
+						"buttons":[{"id":"newservicebtn","class":"btn btn-primary","txt":"Gardar Porto","callback":"saveService"}] };
+		openModalTemplate('newservice','Novo Porto',"_modalbody_newservice",params);
+	}
+
+	function renderServiceRoles(roles,params,context) {
+		context.css({"background-color":"lightgray"});
+		var selectDef={"idselect":"rolport_"+params.id,"data":roles, "url":"/list/service/roles.json","dataQuery":"id="+params.id, "title":"Roles","value":"rol", "text":"name","modalsize":"", "navfunction": "yes", "multiple":"yes","rol":"{{rol}}","onchange":"updateServiceRoles","info":params.id,"template":"_modalbody_roles"};
+		context.html('<div class="row" style="margin:2px;"><div class="col-md-2" style="font-size:1.4em;">Roles: </div><div class="col-md-10">'+renderTemplate("_select_template",selectDef)+'</div></div>');
+	}
+
+	function adminServiceRoles(ev,index,row,$detail) {
+		callServer("/list/service/roles.json","id="+row.id,renderServiceRoles,row,"json",$detail);
+	}
+
+	function updateServiceRoles(select) {
+		var all=JSON.parse($(select).data("data"));
+		var query=[];
+		for(var idx in select.options) {
+			if (select.options[idx].selected) query.push(all.rows[idx].id);
+		}
+		callServer("/update/service/roles","id="+$(select).data("info")+"&roles="+JSON.stringify(query));
+	}
+
+	function selectRow(row,$element,field,isdblclick) {
+		$(".row-selected").removeClass("row-selected");
+		$element.addClass("row-selected");
+		$("#{{id}}").selectpicker("val",row["port"]);
+		if (isdblclick) $("#_modal_{{id}}").modal("hide");
+	}
+</script>

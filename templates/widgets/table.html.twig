@@ -1,0 +1,178 @@
+<style>
+	.bst-search-row {
+		background-color: lightgray;
+	}
+</style>
+
+{% set btndelete = "" %}
+{% set btnedit = "" %}
+{% if buttons is defined %}
+<div id="toolbar_{{idtable}}">
+	{% for b in buttons %}
+		{% if b.callback is defined %} {% set cb="onclick="~b.callback~"(event)" %} {% else %} {% set cb="" %} {% endif %}
+		{% if b.status is not defined %} {% set status="" %} {% else %} {% set status=b.status %} {%endif%}
+		{% if b.target is defined %} 
+			<button {{cb}} id="{{b.id}}-{{idtable}}" class="{{b.class}}" data-toggle="modal" href="#_modal_{{b.target}}" {{status}}>
+		{% else %}
+			<button {{cb}} id="{{b.id}}-{{idtable}}" class="{{b.class}}" {{status}}>
+		{% endif %}
+			<i class="{{b.icon}}"></i> {{b.txt}}
+		</button>
+		{% if b.id == "btn-delete" %} {% set btndelete = b.id %} {% endif %}
+		{% if b.id == "btn-edit" %} {% set btnedit = b.id %} {% endif %}
+	{% endfor %}
+</div>
+{% endif %}
+
+<table id="{{idtable}}" data-toolbar="#toolbar_{{idtable}}"
+	data-unique-id="id"
+	data-show-refresh="true"
+	data-pagination="true" 
+	{% if detailview is defined and detailview != "" %}
+	data-detail-view="true"
+	{% endif %}
+	{% if paginationSwitch is defined and paginationSwitch == true %}
+	data-show-pagination-switch="true"
+	{% endif %}
+	data-page-list="[10, 25, 50, 100, ALL]"
+	data-show-footer="false"
+	{% if search is defined %}
+	data-search="true" 
+	{% endif %}
+	data-side-pagination="server"
+	{% if resizable is defined %}
+	data-resizable="true"
+	{% endif %}
+	{% if filterControl is defined and filterControl == true %}
+	data-filter-control="true"
+	{% endif %}
+	data-filter-show-clear="true"
+	data-init="false"
+	data-icons-prefix="fa"
+	data-data='{{ data | json_encode | raw }}'>
+</table>
+
+
+<script>
+	function table_ajaxRequest_{{idtable}}(params) { 
+		var $table=$("#{{idtable}}"); 
+
+		$table.find(".bst-search-row").hide();
+		var status=$table.data("init");
+		if (!status) {
+			$table.data("init",true);
+			{% if data is defined and data != null %} 
+				var data={{ data | json_encode | raw }};
+				$table.data("data",'{{ data | json_encode | raw }}');
+				if (params.data.offset==undefined)		params.success(data.rows)
+				else												params.success(data);
+			{% else %}
+		alert("A: "+JSON.stringify(params));
+				callServer("{{ajaxurl}}","do={{commandlist}}",function(data) { 
+					if (params.data.offset==undefined)		params.success(data.rows)
+					else												params.success(data);
+				});
+			{% endif %}
+		} else {
+		alert("B: "+JSON.stringify(params));
+			callServer("{{ajaxurl}}","do={{commandlist}}",function(data) {
+				if (params.data.offset==undefined)		params.success(data.rows)
+				else												params.success(data);
+				{% if select is defined and select != "null" %}
+					$("#{{select}}").data("query",JSON.stringify(params.data));
+					reloadSelect("{{select}}",data);
+				{% endif %}
+			});
+		}
+	}
+
+	function fixmargins_{{idtable}}(value,row,index,field) {
+		return fixmargins("{{idtable}}",value,row,index,field);
+	}
+
+{% if detailview is defined %}
+	$("#{{idtable}}").on('expand-row.bs.table', function (e, index, row, $detail) {
+		var that=this;
+		$(this).find(".detail-view").each(function() {
+			olddetail=$(this).prev().data("index");
+			if (olddetail != index) $(that).bootstrapTable("collapseRow",olddetail);
+			
+		});
+		{{detailview}}(e,index,row,$detail);
+	});
+{% endif %}
+
+{% if clickevent is defined %}
+	$("#{{idtable}}").on('click-row.bs.table', function (ev,row,$element,field) {
+			ev.preventDefault();
+			ev.stopPropagation();
+			{{clickevent}}(row,$element,field,false);
+	});
+
+	$("#{{idtable}}").on('dbl-click-row.bs.table', function (ev,row,$element,field) {
+			ev.preventDefault();
+			ev.stopPropagation();
+			{{clickevent}}(row,$element,field,true);
+	});
+{% endif %}
+
+{% if btndelete != "" or btnedit != "" %}
+
+	$("#{{idtable}}").on('check.bs.table uncheck.bs.table ' +
+                'check-all.bs.table uncheck-all.bs.table', function () {
+		var $btn;
+		{% if btndelete != "" %}
+			$btn=$("#{{btndelete}}-{{idtable}}");
+			$btn.prop('disabled', !$("#{{idtable}}").bootstrapTable('getSelections').length);
+		{% endif %}
+		{% if btnedit != "" %}
+			$btn=$("#{{btnedit}}-{{idtable}}");
+			$btn.prop('disabled', !$("#{{idtable}}").bootstrapTable('getSelections').length);
+		{% endif %}
+	});
+
+{% endif %}
+
+</script>
+
+
+
+<script id="maketable_{{idtable}}">
+	function initTable_{{idtable}}() {
+		var $table=$("#{{idtable}}");
+		{% for col in columns %}
+				{% if col.formatter is defined %} 
+					_table_formatters_["{{idtable}}"]={};
+					_table_formatters_["{{idtable}}"]["{{col.field}}"]="{{col.formatter}}";
+				{% endif %}
+		{% endfor %}
+		$table.bootstrapTable({
+			height: $table.parent().height(),
+			ajax: table_ajaxRequest_{{idtable}},
+			searchOnEnterKey: true,
+			columns:[
+				{% if checkbox is defined %}
+					{ field:"check", checkbox:"true", align:"center", valign:"middle"},
+				{% endif %}
+				{% for col in columns %}
+					{ formatter: "fixmargins_{{idtable}}", {% for f,t in col %} {% if f != "formatter" %}{{f}}:"{{t}}",{% endif %} {% endfor %} }, 
+				{% endfor %}
+			]
+		});
+		return $table;
+	}
+
+	$(document).ready(function() {
+		setTimeout(function() {
+			$table=initTable_{{idtable}}();
+			$table.on('load-success.bs.table' ,function(event,data) { 
+				$table.data("data",JSON.stringify(data));
+				{% if select is defined and select != "null" %}
+					reloadSelect("{{select}}",data);
+				{% endif %}
+			});
+			$("#maketable_{{idtable}}").remove();
+		},200);
+	});
+</script>
+

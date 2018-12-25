@@ -1,0 +1,100 @@
+<div class="form-row">
+	{% if navfunction is not defined or navfunction=="" %}
+		{% set navfunction = "no" %}
+	{% endif %}
+	{% set num = 11 %}
+
+	{% if navfunction == "yes" %}
+		{% set num = 10 %}
+	{% endif %}
+	
+	{% if url is defined %}
+		{% set num = num - 1 %}
+	{% endif %} 
+
+	{% if multiple is defined and multiple!="" %}
+		{% set multiple = "multiple" %}
+	{% else %}
+		{% set multiple = "" %}
+	{% endif %}
+
+	{% if search is defined and search!="" %}
+		{% set search='data-live-search="true"' %}
+	{% else %}
+		{% set search='' %}
+	{% endif %}
+
+	{% if rol is not defined %}
+		{% set rol="" %}
+	{% endif %}
+
+	{% if info is not defined %}
+		{% set info="" %}
+	{% endif %}
+
+	<select id="{{idselect}}" name="{{idselect}}" {{search}} data-query='{"search":"","order":"asc","offset":0,"limit":10}' data-data="" data-value="{{value}}" data-text="{{text}}" data-info="{{info}}" class="form-control selectpicker show-menu-arrow form-control-sm col-md-{{num}}" {{multiple}}>
+	</select>
+	<input type="hidden" name="{{idselect}}-row-id" id="{{idselect}}-row-id" value=""/>
+
+	{% if navfunction == "yes" %}
+		{% if template is not defined %}
+			{% set template="null" %}
+		{% endif %}
+		<button type="button" id="btn-nav-{{idselect}}" onclick='openGrid_{{idselect}}();' style="cursor:pointer" class="form-control form-control-sm col-md-1"><i class="fa fa-navicon"></i></button>
+	{% endif %}
+
+	{% if url is defined %}
+	<button type="button" id="btn-refresh-{{idselect}}" style="cursor:pointer" class="form-control form-control-sm col-md-1"><i class="fa fa-refresh"></i></button>
+	{% endif %}
+</div>
+
+<script>
+	{% if navfunction == "yes" %}
+		function openGrid_{{idselect}}() {
+			var data=JSON.parse($("#{{idselect}}").data("data"));
+			openModalTemplate("{{idselect}}","{{title}}","{{template}}",{ "id":"{{idselect}}","modalsize":"{{modalsize}}","rol":"{{rol}}","data":data });
+		}
+	{% endif %}
+
+	$(document).ready(function() {
+
+		reloadSelect("{{idselect}}",{{data | json_encode | raw}});
+
+		{% if url is defined %}
+		$("#btn-refresh-{{idselect}}").click(function() {
+			event.stopPropagation();
+			event.preventDefault();
+
+			{% if dataQuery is defined %}
+				callServer("{{url}}","{{dataQuery}}",function(data) {
+					reloadSelect("{{idselect}}",data); 
+					//__select__{{idselect}} = data;
+				});
+			{% else %}
+				callServer("{{url}}",null,function(data) {
+					reloadSelect("{{idselect}}",data);
+					//__select__{{idselect}} = data; 
+				});
+			{% endif %}
+		});
+		{% endif %}
+
+
+		$("#{{idselect}}").on("changed.bs.select", function(event,idx,newvalue,oldvalue) {
+			var code;
+			if (idx == undefined) code=$("#{{idselect}} option:selected").data("index");
+			else						 code=$("#{{idselect}} option:eq("+idx+")").data("index"); 
+
+			$("#{{idselect}}-row-id").val(code);
+			if ($("#{{idselect}}").parent().hasClass("show")) {
+				$("#{{idselect}}").selectpicker("toggle");
+			}
+			{% if onchange is defined and onchange !="" %}
+				{{onchange}}(this);
+			{% endif %}
+		});
+
+		$("#{{idselect}}").selectpicker();
+		$("#{{idselect}}-row-id").val($("#{{idselect}} option:eq(0)").data("index"));
+	});
+</script>

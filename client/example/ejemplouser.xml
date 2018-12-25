@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<user number='13117' status='enabled'>
+	<password type='noexpire'>active</password>
+	<username>jtorre</username>
+	<quotas>
+		<filesystem name='/dev/mapper/ERaid-Datos'>
+			<status>--</status>
+			<disk>
+				<usage>8</usage>
+				<soft>0</soft>
+				<hard>0</hard>
+				<grace>0</grace>
+			</disk>
+			<files>
+				<usage>1</usage>
+				<soft>0</soft>
+				<hard>0</hard>
+				<grace>0</grace>
+			</files>
+		</filesystem>
+		<filesystem name='/dev/mapper/Stripped-Buzon'>
+			<status>--</status>
+			<disk>
+				<usage>0</usage>
+				<soft>0</soft>
+				<hard>0</hard>
+				<grace>0</grace>
+			</disk>
+			<files>
+				<usage>0</usage>
+				<soft>0</soft>
+				<hard>0</hard>
+				<grace>0</grace>
+			</files>
+		</filesystem>
+	</quotas>
+	<firstname>Jesús Ángel</firstname>
+	<lastname>de la Torre Alfonso</lastname>
+	<birthdate>07-06-1970</birthdate>
+	<address>Barrio A Rotea- Quintela, 115, - Moaña - Pontevedra</address>
+	<phone>986315065</phone>
+	<phone1>986315065</phone1>
+</user>
+

@@ -1,0 +1,27 @@
+{% if id is empty or id == "" or id is null %}
+	{% set disabled = "" %}
+{% else %}
+	{% set disabled = "disabled" %}
+{% endif %}	
+
+<form id="dataAddComputerForm">
+	<input type="hidden" name="id" value="{{id}}"/>
+	<div class="form-group">
+		<label for="description">Descripción</label>
+		<input name="description" value="{{description}}" class="form-control form-control-sm" type="text" placeholder="Indica unha breve descripción do equipo">
+	</div>
+	<div class="form-group">
+		<label for="description">Equipo</label>
+		<input name="domainname" value="{{domainname}}" class="form-control form-control-sm" type="text" placeholder="Indica o nome do equipo (FQDN)">
+	</div>
+	<div class="form-row">
+		<div class="form-group col-md-6">
+			<label for="ip">IP</label>
+			<input name="ip" value="{{ip}}" class="form-control form-control-sm" type="text" placeholder="Indica a IP do equipo" {{disabled}}>
+		</div>
+		<div class="form-group col-md-6">
+			<label for="mac">Mac</label>
+			<input name="mac" value="{{mac}}" class="form-control form-control-sm" type="text" placeholder="Indica a MAC do equipo">
+		</div>
+	</div>
+</form>
