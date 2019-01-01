@@ -131,6 +131,7 @@ class ComputerController extends FacadeController {
 				}
 			}
 			return $this->listComputersAction();
+			//return $this->update(array("command"=>"change_computer_status","id"=>intval($computerid),"status"=>($computerstatus=="true")));
 		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		} finally {

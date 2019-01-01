@@ -119,7 +119,7 @@ class FacadeController extends Controller {
 					foreach($data->computers as $c) {
 						$com=Computer::getInstance($doctrine,$c->id);
 						$com->setStatus($c->status);
-						$entityManager->persist($com);
+						//$entityManager->persist($com);
 					}
 				}
 				$entityManager->flush();
