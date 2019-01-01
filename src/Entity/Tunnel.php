@@ -106,7 +106,7 @@ class Tunnel {
     }
 
 	 public function getUrl() {
-		return "@".SSHGATEWAY.":".$this->sourceport;
+		return SSHGATEWAY.":".$this->sourceport;
 	 }
 
     /**
@@ -175,7 +175,7 @@ class Tunnel {
 											"description"=>$tr->getDescription(),
 											"destination"=>$c->getDomainname()." [".$c->getIp()."]",
 											"dport"=>$s->getName()." [".$s->getPort()."]",
-											"url"=>$user->getUsername().$t->getUrl(),
+											"url"=>$t->getUrl(),
 											"status"=>$tr->isRunning());
 		}
 		return $data;
