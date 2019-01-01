@@ -94,7 +94,7 @@ class UserTunnels
         return $this;
     }
 
-    public function getRunning(): ?bool
+    public function isRunning(): ?bool
     {
         return $this->running;
     }

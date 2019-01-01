@@ -131,28 +131,33 @@
 			$(sw).prop("checked",true);
 			return;
 		}
-
 		var $table=$("#__table__{{id}}");
 		var row=$(sw).closest("#__table__{{id}} tr");
 		var idx=$(row).data("index");
 		var data=JSON.parse($table.data("data"));
-		if ((data.rows[idx].mac==null) && (running)) {
+		if ((data.rows[idx].mac=="") && (running)) {
 			messageAlert("Imposible encender equipo, no disponemos de su dirección MAC",WARNING,3000);
 			$(sw).prop("checked",false);
 			return;
 		}
 		data.rows[idx].running=running;
+		data.rows[idx].startTime=Date.now();
+		$(sw).parent().addClass("onoffswitch-running"); alert(JSON.stringify(data));
 		$table.data("data",JSON.stringify(data));
-		alert("Switched..."+JSON.stringify(data.rows[idx]));
+		callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
 	}
 
 	function statusFormatterComputer(value,row,index,field) { 
 		var html="{{ include("/templates/widgets/switch.html.twig",{"id":"%rowid%", "name": "onoffcomputer", "checked":"%status%","callback":"switchComputer"}) }}";
 
+alert(value);
+
+		// Value  ---> 0: off, 1: starting, 2: off ???
 		if (value) html=html.replace(/%status%/g,"checked");
 		else 		  html=html.replace(/%status%/g,"");
 		html=html.replace(/%rowid%/g,row.id)
 		var result = $('<textarea />').html(html).text();
+		if ((row.startTime!=undefined)&&(row.startTime!="0")) html=html.replace(/%running%/g,"onoffswitch-running");
 		return result;
 	}
 </script>

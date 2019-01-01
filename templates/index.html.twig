@@ -34,7 +34,7 @@
    <script src="{{ asset('assets/js/utils.js') }}"></script>
 
 	<script src="{{ asset('assets/js/bootstrap-table.js') }}"></script>
-	<script src="{{ asset('asstes/js/bootstrap-table-locale-es.js') }}"></script>
+	<script src="{{ asset('assets/js/bootstrap-table-locale-es.js') }}"></script>
 	<script src="{{ asset('assets/js/bootstrap-table-resizable.js') }}"></script>
 	<script src="https://rawgit.com/wenzhixin/colResizable/master/source/colResizable-1.5.source.js"></script>
 	<script src="{{ asset('assets/js/bootstrap-select.js') }}"></script>
@@ -101,9 +101,9 @@
 
 	/* On/Off tunnel
 	*/
-	function setTunnel(event,sw,id,status) { alert(id); alert(status);
-		var $table=$("#TABLETUNNELS"); alert($table.data("data"));
-		var row=$(sw).closest("#TABLETUNNELS tr"); alert(row);
+	function setTunnel(event,sw,id,status) { 
+		var $table=$("#TABLETUNNELS"); 
+		var row=$(sw).closest("#TABLETUNNELS tr"); 
 		var idx=$(row).data("index");
 		var data=JSON.parse($table.data("data")); alert(JSON.stringify(data));
 		data.rows[idx].status=status;

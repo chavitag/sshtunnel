@@ -30,6 +30,7 @@ class TunnelController extends FacadeController {
 	*/
 	public function index(Request $request) {
 		$user=$this->getUser();
+		$this->update();
 		return $this->render('index.html.twig',
 			array(
 				"user"=>$user,
@@ -100,7 +101,6 @@ class TunnelController extends FacadeController {
 	* @Route("/change/tunnel", name="c_tunnel")
 	*/
 	public function changeTunnelAction(Request $request) {
-		$socket=null;
 		try {
 			$doctrine=$this->getDoctrine();
 			$entityManager=$doctrine->getManager();
@@ -109,31 +109,51 @@ class TunnelController extends FacadeController {
 			$data=$this->info();
 			$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$tunnelid);
 			$tun->setRunning($tunnelstatus=="true");
+			// Si es "apagar" el túnel, hacerlo solo si ningun usuario lo tiene encendido....
+			$tunnel=$tun->getTunnel();
 			$entityManager->persist($tun);
-			return $this->updateTunnels(array("command"=>"change_tunnel_status","id"=>intval($tunnelid),"status"=>$tunnelstatus));
+
+			if (!$tun->isRunning()) {
+				$users=$tunnel->getUsers();
+				foreach($users as $user) {
+					$tun=UserTunnels::getInstance($doctrine,$user->getUser(),$tunnelid);
+					if (($tun!=null)&&($tun->isRunning())) {
+						$entityManager->flush();
+						return $this->json(array("ok"=>"false","msg"=>"Another user is running this tunnel","code"=>0));
+					}
+				}
+			}
+			$tunnel->setStarted($tunnelstatus=="true");
+			$entityManager->persist($tunnel);
+			$entityManager->flush();
+			return $this->update(array("command"=>"change_tunnel_status","id"=>intval($tunnelid),"status"=>($tunnelstatus=="true")));
 		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
-		} finally {
-			if ($socket!=null) $socket->close();
 		}
 	}
-
+/*
 	private function updateTunnels($action=null) {
+			$socket=null;
 			$doctrine=$this->getDoctrine();
 			$entityManager=$doctrine->getManager();
 
-			$data=$this->info();
-			if ($action!=null) $data["action"]=$action;
-			$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
-			$socket->send(JSON::encode($data,array("users","roles","tunnels")));
-			$data=json_decode($socket->receive());
-			foreach($data->tunnels as $t) {
-				$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$t->id);
-				if (!$t->started) $tun->setRunning($t->started);
-				$entityManager->persist($tun);
+			try {
+				$data=$this->info();
+				if ($action!=null) $data["action"]=$action;
+				$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
+				$socket->send(JSON::encode($data,array("users","roles","tunnels")));
+				$data=json_decode($socket->receive());
+				foreach($data->tunnels as $t) {
+					$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$t->id);
+					//if (!$t->started) $tun->setRunning($t->started);
+					$tun->setRunning($t->started);
+					$entityManager->persist($tun);
+				}
+				$entityManager->flush();
+			} finally {
+				if ($socket!=null) $socket->close();
 			}
-			$entityManager->flush();
 			return $this->listTunnelsAction();
-	}
+	} */
 
 }

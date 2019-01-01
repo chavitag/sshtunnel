@@ -60,7 +60,7 @@ function getIdSelections(id) {
 	});
 }
 
-function reloadTable(data,id) { alert("reloading...."); alert(data);
+function reloadTable(data,id) {
 	$("#"+id).bootstrapTable("load",data);
 	$("#"+id).trigger("load-success.bs.table",data);
 	$("#"+id).trigger("uncheck-all.bs.table");

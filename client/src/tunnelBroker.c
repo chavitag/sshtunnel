@@ -20,6 +20,8 @@
 #include <json_object.h>
 
 #include "http.h"
+#include "computer.h"
+#include "tunnel.h"
 
 #define true 1
 #define false 0
@@ -40,37 +42,220 @@ void testRenew(void);
 void renewData(void);
 char *process(char *data);
 
-/*typedef struct tagComputer {
-	unsigned int id;
-	char domainname[];
-	char ip[];
-	char description[];
-	char mac[];
-	byte status;
-} Computer;
-
-/*typedef struct tagTunnel {
-	unsigned int id;
-	unsigned short sourceport;
-	unsigned short destport;
-	char ip[];
-	byte started;
-} Tunnel;*/
-
 int veces=0;
 char bufrcv[1000000];
 char bufsnd[1000000];
 
+char *JSON_response(void);
+void renewData(void);
 
-/** Protocol Definition
+void processTunnels(json_object *jstunnels) {
+	json_object *el;
+	json_object *obj;
+	unsigned int id;
+	unsigned short sport;
+	unsigned short dport;
+	const char *ip;
+	int status;
+	const char *url;
+	Tunnel *t;
+	int running;
+	int idx;
 
-	Requests:
-		{ "tunnels": [{"id": ,"from": ,"to": , "dport": , "status":}], "computers": [{"id":,"ip":,"mac":,"action":}] }
+	int len=json_object_array_length(jstunnels);
 
-	Responses:
-		{ "tunnels": [{"id":, "sport": }], "computers": [{"id":,"status":}]}
+	for(idx=0;idx<len;idx++) {
+		el=json_object_array_get_idx(jstunnels,idx);
+		printf("\t ** Procesando %s\n",json_object_to_json_string(el));
 
+		json_object_object_get_ex(el,"id",&obj);
+		id=json_object_get_int(obj);
+
+		json_object_object_get_ex(el,"sourceport",&obj);
+		sport=json_object_get_int(obj);
+
+		json_object_object_get_ex(el,"destport",&obj);
+		dport=json_object_get_int(obj);
+
+		json_object_object_get_ex(el,"ip",&obj);
+		ip=json_object_get_string(obj);
+
+		json_object_object_get_ex(el,"started",&obj);
+		status=json_object_get_boolean(obj);
+
+		json_object_object_get_ex(el,"url",&obj);
+		url=json_object_get_string(obj);
+
+		t=newTunnel(id,sport,dport,ip,url);
+		running=getStatusTunnel(t);
+
+printf("%s-->%d RUNNING %d\n",JSON_Tunnel(t,bufsnd,sizeof(bufsnd)),status,running);
+
+		if (!running && status) turnOnTunnel(t);
+		else if (running && !status) turnOffTunnel(t);
+	}
+}
+
+void processComputers(json_object *jscomputers) {
+	json_object *el;
+	json_object *obj;
+	unsigned int id;
+	const char *dn;
+	const char *ip;
+	const char *desc;
+	const char *mac;
+	Computer *c;
+	int idx;
+
+	int len=json_object_array_length(jscomputers);
+
+	for (idx=0;idx<len;idx++) {
+		el=json_object_array_get_idx(jscomputers,idx);
+		printf("\t ** Procesando %s\n",json_object_to_json_string(el));
+
+		json_object_object_get_ex(el,"id",&obj);
+		id=json_object_get_int(obj);
+
+		json_object_object_get_ex(el,"domainname",&obj);
+		dn=json_object_get_string(obj);
+
+		json_object_object_get_ex(el,"ip",&obj);
+		ip=json_object_get_string(obj);
+
+		json_object_object_get_ex(el,"description",&obj);
+		desc=json_object_get_string(obj);
+
+		json_object_object_get_ex(el,"mac",&obj);
+		mac=json_object_get_string(obj);
+
+		c=newComputer(id,dn,ip,desc,mac);
+		getStatusComputer(c);
+	}
+}
+
+void doCommand(json_object *jsaction) {
+	json_object *obj;
+	const char *command;
+	int id;
+	int status;
+	Computer *c;
+	Tunnel *t;
+
+	if (jsaction!=NULL) {
+		printf("\t ** Recibido Comando %s\n",json_object_to_json_string(jsaction));
+
+		json_object_object_get_ex(jsaction,"id",&obj);
+		id=json_object_get_int(obj);
+
+		json_object_object_get_ex(jsaction,"command",&obj);
+		command=json_object_get_string(obj);
+
+		json_object_object_get_ex(jsaction,"status",&obj);
+		status=json_object_get_boolean(obj);
+
+		printf("Recibido comando %s\n",command);
+		if (strcmp(command,"change_computer_status")==0) {
+			c=getComputer(id);
+			if (status) {
+				if (c!=NULL) turnOnComputer(c);
+			} else {
+				json_object_object_get_ex(jsaction,"credentials",&obj);
+				if (c!=NULL) turnOffComputer(c,json_object_get_string(obj));
+			} 
+		} else if (strcmp(command,"change_tunnel_status")==0) {
+			t=getTunnel(id);
+			if (status) {
+				if (t!=NULL) turnOnTunnel(t);
+			} else {
+				if (t!=NULL) turnOffTunnel(t);
+			}
+		}
+	}
+}
+
+char *process(char *data) {
+	json_object *jobj;
+	json_object *jsaction=NULL;
+	json_object *jstunnels=NULL;
+	json_object *jscomputers=NULL;
+	json_object *ok=NULL;
+
+printf("RECEIVED %s\n",data);
+
+	jobj = json_tokener_parse(data);
+	if (json_object_object_get_ex(jobj,"ok",&ok) && json_object_get_boolean(ok)) {
+		json_object_object_get_ex(jobj, "action",&jsaction);
+		json_object_object_get_ex(jobj, "tunnels",&jstunnels);
+		json_object_object_get_ex(jobj, "computers",&jscomputers);
+
+		
+		doCommand(jsaction);
+		if (jstunnels!=NULL) processTunnels(jstunnels);
+		if (jscomputers!=NULL) processComputers(jscomputers);
+		doCommand(jsaction);
+	}
+	return JSON_response();
+}
+
+char *JSON_response(void) {
+	int len;
+	strcpy(bufsnd,"{\"ok\":true,\"computers\":");
+	len=strlen(bufsnd);
+	JSON_ComputerList(&bufsnd[len],sizeof(bufsnd)-len);
+	len=strlen(bufsnd);
+	strncat(bufsnd,",\"tunnels\":",sizeof(bufsnd)-len);
+	len=strlen(bufsnd);
+	JSON_TunnelList(&bufsnd[len],sizeof(bufsnd)-len);
+	len=strlen(bufsnd);
+	strncat(bufsnd,"}",sizeof(bufsnd)-len);
+	printf("RESPONSE: %s\n",bufsnd);
+	return bufsnd;
+}
+
+void notify_end(int signal) {
+	wait(NULL);
+}
+
+
+/** Renew info every TIMERENEW seconds
 */
+void testRenew(void) {
+	time_t now=time(NULL);
+	time_t last=0;
+	int fl;
+
+	while(1) {
+		now=time(NULL);
+		fl=open("/tmp/lck.lck",O_RDONLY);
+		if (fl!=-1) {
+			read(fl,&last,sizeof(time_t));
+			close(fl);
+		} 
+		if ((now - last) > TIMERENEW) renewData();
+		sleep(TIMERENEW); 
+	}
+}
+
+void renewData(void) {
+	char *info;
+	unsigned long size;
+	json_object *jobj;
+	json_object *jstunnels=NULL;
+	json_object *ok=NULL;
+
+	printf("Refresh Info....\n");
+	veces++;
+	info=http_request(REQUEST,NULL,&size);
+	if (info!=NULL) {
+		jobj = json_tokener_parse(info);
+		if (json_object_object_get_ex(jobj,"ok",&ok) && json_object_get_boolean(ok)) {
+			json_object_object_get_ex(jobj, "tunnels",&jstunnels);
+			processTunnels(jstunnels);
+		}
+		free(info);
+	}
+}
+
 void doWork(int skd,struct sockaddr_in *addr) {
 	// JSON command
 	int nc=recv(skd,bufrcv,sizeof(bufrcv),0);
@@ -80,106 +265,6 @@ void doWork(int skd,struct sockaddr_in *addr) {
 		send(skd,bufsnd,strlen(bufsnd),0);
 	}
 	close(skd);
-}
-
-int turnOnComputer(const char *ip,const char *mac,int status) {
-	/* if (status) {
-		if (!isAlive(ip)) {
-			switchOn("eth0",mac);
-			sleep(1); 
-		}
-	}
-	return isAlive(ip); */
-	return true;
-}
-
-int setTunnel(const char *ip, const char *dest, int field) {
-	return 9997;
-}
-
-char *process(char *data) {
-	json_object * jobj;
-	json_object *ok=NULL;
-	json_object *jsaction=NULL;
-	json_object *jstunnels=NULL;
-	json_object *jscomputers=NULL;
-	json_object *el;
-	json_object *field;
-	json_object *dest;
-	json_object *ip;
-	json_object *command=NULL;
-	json_object *id=NULL;
-	json_object *status=NULL;
-	int srcport=-1;
-	size_t len;
-	int idx;
-
-	jobj = json_tokener_parse(data);
-	if (json_object_object_get_ex(jobj,"ok",&ok) && json_object_get_boolean(ok)) {
-		json_object_object_get_ex(jobj, "action",&jsaction);
-		json_object_object_get_ex(jobj, "tunnels",&jstunnels);
-		json_object_object_get_ex(jobj, "computers",&jscomputers);
-
-		// jsaction
-		if (jsaction!=NULL) {
-			printf("\t ** Recibido Comando %s\n",json_object_to_json_string(jsaction));
-			json_object_object_get_ex(jsaction,"command",&command);
-			json_object_object_get_ex(jsaction,"id",&id);
-			json_object_object_get_ex(jsaction,"status",&status);
-			printf("Recibido comando %s\n",json_object_get_string(command));
-		}
-
-
-
-		// Turn On Computers...
-		len=json_object_array_length(jscomputers);
-
-		for (idx=0;idx<len;idx++) {
-			el=json_object_array_get_idx(jscomputers,idx);
-			printf("\t ** Procesando %s\n",json_object_to_json_string(el));
-			json_object_object_get_ex(el,"status",&field);
-			json_object_object_get_ex(el,"mac",&dest);
-			json_object_object_get_ex(el,"ip",&ip);
-			if (!turnOnComputer(json_object_get_string(ip),json_object_get_string(dest),json_object_get_boolean(field))) {
-				//json_object_set_boolean(field,true);
-				json_object_object_del(el,"status");
-				json_object_object_add(el,"status",json_object_new_boolean(false));
-			} else {
-				json_object_object_del(el,"status");
-				json_object_object_add(el,"status",json_object_new_boolean(true));
-			}
-		}
-
-		// Configure Tunnels
-		len=json_object_array_length(jstunnels);
-		printf(" %d tunnels\n",len);
-		for(idx=0;idx<len;idx++) {
-			el=json_object_array_get_idx(jstunnels,idx);
-			printf("\t ** Procesando %s\n",json_object_to_json_string(el));
-			json_object_object_get_ex(el,"started",&field);
-			json_object_object_get_ex(el,"destport",&dest);
-			json_object_object_get_ex(el,"ip",&ip);
-
-			srcport=setTunnel(json_object_get_string(ip),json_object_get_string(dest),json_object_get_boolean(field));
-			if (srcport <= 0) {
-				//json_object_set_boolean(field,true);
-				json_object_object_del(el,"started");
-				json_object_object_add(el,"started",json_object_new_boolean(false));
-			} else {
-				json_object_object_del(el,"started");
-				json_object_object_add(el,"started",json_object_new_boolean(true));
-				json_object_object_del(el,"sourceport");
-				json_object_object_add(el,"sourceport",json_object_new_int(srcport));
-			}
-		}
-		snprintf(bufsnd,sizeof(bufsnd),"{\"ok\":true,\"tunnels\":%s,\"computers\": %s}",json_object_to_json_string(jstunnels), json_object_to_json_string(jscomputers));
-		//printf("***** %s ******\n",bufsnd);
-	}
-	return bufsnd;
-}
-
-void notify_end(int signal) {
-	wait(NULL);
 }
  
 void waitRequests(int port)
@@ -212,6 +297,7 @@ void waitRequests(int port)
 		addr.sin_addr.s_addr=inet_addr(IP);
 		if (bind(sk,(struct sockaddr *)&addr,sizeof(addr))!=-1) {
 			if (listen(sk,5)!=-1) {
+				// Service loop
 				while(1) {
 					int sz=sizeof(addr);
 					skd=accept(sk,(struct sockaddr *)&addr,&sz);
@@ -245,40 +331,6 @@ void waitRequests(int port)
 		close(sk);
 	} else printf("Can't open socket\n");
 	kill(notificator,SIGKILL);
-}
-
-/** Renew info every TIMERENEW seconds
-*/
-void testRenew(void) {
-	time_t now=time(NULL);
-	time_t last=0;
-	int fl;
-
-	while(1) {
-		now=time(NULL);
-		fl=open("/tmp/lck.lck",O_RDONLY);
-		if (fl!=-1) {
-			read(fl,&last,sizeof(time_t));
-			close(fl);
-		} 
-		if ((now - last) > TIMERENEW) renewData();
-		sleep(TIMERENEW); 
-	}
-}
-
-void renewData(void) {
-	char *info;
-	unsigned long size;
-
-	printf("Refresh Info....\n");
-	veces++;
-	info=http_request(REQUEST,NULL,&size);
-	/*if (info!=NULL) {
-		printf("---->%s\n",info);*/
-//TODO:
-		snprintf(bufsnd,sizeof(bufsnd),"%s",process(info));
-		//http_request(RESPONSE,process(info),&size); // Update database to current state....
-	free(info);
 }
 
 /** MAIN: Background process

@@ -190,13 +190,11 @@ class Computer
 		return $data;
 	}
 
-	// Cambiar a Computer::getInstance($id);
-	/*public static function getComputer($id) {
+	public static function getInstance($doctrine,$id) {
 		try {
-			$doctrine = $this->getDoctrine();
 			return $doctrine->getRepository(Computer::class)->find($id);
 		} catch(Exception $e) {
 			throw new \Exception($e->getMessage());
 		}
-	}*/
+	}
 }

@@ -12,6 +12,8 @@ namespace App\Controller;
 
 use App\Entity\Computer;
 use App\Entity\Rol;
+use App\Utils\Socket;
+use App\Utils\JSON;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
@@ -112,18 +114,20 @@ class ComputerController extends FacadeController {
 		try {
 			$computerid=$request->request->get("id");
 			$computerstatus=$request->request->get("status");
-			$data=$this->info();
+			$data=$this->info(true);
 			$data["action"]=array();
 			$data["action"]["command"]="change_computer_status";
 			$data["action"]["id"]=intval($computerid);
-			$data["action"]["status"]=$computerstatus;
+			$data["action"]["status"]=($computerstatus=="true");
 
-			$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
+/*			$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
 			$socket->send(JSON::encode($data,array("users","roles","tunnels")));
-			$data=json_decode($socket->receive());
-			// Scan tunnels to update database
-			error_log("RECIBIDO...".$data);
-			return $this->listTunnelsAction();
+			$data=json_decode($socket->receive());*/
+
+
+			// Scan computers to update database
+			error_log("RECIBIDO...".print_r($data,true));
+			return $this->listComputersAction();
 		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		} finally {

@@ -4,14 +4,16 @@
 	{% set cb = "" %}
 {% endif %}
 
-<div class="onoffswitch" style="margin-left: 8px">
-	<input type="checkbox" name="{{name}}" class="onoffswitch-checkbox" id="onoffswitch_{{id}}" {{cb}} {{checked}}>
-	<label class="onoffswitch-label" for="onoffswitch_{{id}}">
+<div class="onoffswitch %running%" style="margin-left: 8px" id="oosw-{{name}}-{{id}}">
+	<input type="checkbox" name="{{name}}" class="onoffswitch-checkbox" id="{{name}}_{{id}}" {{cb}} {{checked}}>
+	<label class="onoffswitch-label" for="{{name}}_{{id}}">
 		<div class="onoffswitch-inner"></div>
 		<div class="onoffswitch-switch"></div>
 	</label>
 </div>
 
 <script>
-	$(".onoffswitch").off("click").on("click",function(event) { event.stopPropagation(); } )
+	$(".onoffswitch").off("click").on("click",function(event) {
+		event.stopPropagation(); 
+	} )
 </script>

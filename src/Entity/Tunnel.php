@@ -176,7 +176,7 @@ class Tunnel {
 											"destination"=>$c->getDomainname()." [".$c->getIp()."]",
 											"dport"=>$s->getName()." [".$s->getPort()."]",
 											"url"=>$user->getUsername().$t->getUrl(),
-											"status"=>$tr->getRunning());
+											"status"=>$tr->isRunning());
 		}
 		return $data;
 	}

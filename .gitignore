@@ -7,6 +7,8 @@
 ###< symfony/framework-bundle ###
 
 ###> symfony/webpack-encore-pack ###
+/assets/
+/client/
 /node_modules/
 /public/build/
 npm-debug.log

@@ -6,9 +6,11 @@ use App\Exceptions\FacadeException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
+use App\Entity\UserTunnels;
 use App\Entity\Tunnel;
 use App\Entity\Computer;
 use App\Utils\JSON;
+use App\Utils\Socket;
 
 define("SSHGATEWAY","127.0.0.1");
 define("SSHGATEWAY_PORT",1777);
@@ -86,11 +88,43 @@ class FacadeController extends Controller {
 	/**---------------------------------------------------
 	-------------> Auxiliar Functions
 	----------------------------------------------------**/
-	protected function info() {
+	protected function info($computers=false) {
 		$doctrine=$this->getDoctrine();
-		$data=array("ok"=>true,"tunnels"=>null,"computers"=>null);
+		$data=array("ok"=>true);
 		$data["tunnels"]=$doctrine->getRepository(Tunnel::class)->findAll();
-		$data["computers"]=$doctrine->getRepository(Computer::class)->findAll();
+		if ($computers) $data["computers"]=$doctrine->getRepository(Computer::class)->findAll();
 		return $data;
+	}
+
+	protected function update($action=null,$computers=false) {
+			$socket=null;
+			$doctrine=$this->getDoctrine();
+			$entityManager=$doctrine->getManager();
+
+			try {
+				$data=$this->info($computers);
+				if ($action!=null) $data["action"]=$action;
+				$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
+				$socket->send(JSON::encode($data,array("users","roles","tunnels")));
+				$data=json_decode($socket->receive());
+				foreach($data->tunnels as $t) {
+					$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$t->id);
+					if ($tun!=null) {
+						if (!$t->started) $tun->setRunning($t->started);
+						$entityManager->persist($tun);
+					}
+				}
+				if ($computers) {
+					foreach($data->computers as $c) {
+						$com=Computer::getInstance($doctrine,$c->id);
+						$com->setStatus($c->status);
+						$entityManager->persist($com);
+					}
+				}
+				$entityManager->flush();
+			} finally {
+				if ($socket!=null) $socket->close();
+			}
+			return $this->listTunnelsAction();
 	}
 }
