@@ -131,29 +131,4 @@ class TunnelController extends FacadeController {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		}
 	}
-/*
-	private function updateTunnels($action=null) {
-			$socket=null;
-			$doctrine=$this->getDoctrine();
-			$entityManager=$doctrine->getManager();
-
-			try {
-				$data=$this->info();
-				if ($action!=null) $data["action"]=$action;
-				$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
-				$socket->send(JSON::encode($data,array("users","roles","tunnels")));
-				$data=json_decode($socket->receive());
-				foreach($data->tunnels as $t) {
-					$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$t->id);
-					//if (!$t->started) $tun->setRunning($t->started);
-					$tun->setRunning($t->started);
-					$entityManager->persist($tun);
-				}
-				$entityManager->flush();
-			} finally {
-				if ($socket!=null) $socket->close();
-			}
-			return $this->listTunnelsAction();
-	} */
-
 }

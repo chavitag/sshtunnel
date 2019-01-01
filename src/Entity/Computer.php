@@ -138,8 +138,8 @@ class Computer
 
 	/** return true (Computer is running) / false (Computer is off)
 	*/
-	public function getStatus(): bool {
-		return ($this->status==true);
+	public function getStatus() {
+		return $this->status;
 	}
 
 	public function setStatus($status) {

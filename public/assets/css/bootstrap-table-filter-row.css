@@ -1,14 +1,1 @@
-/**
- * @author: Dennis Hernández
- * @webSite: http://djhvscf.github.io/Blog
- * @version: v2.1.1
- */
-
-.no-filter-control {
-    height: 34px;
-}
-
-.filter-control {
-    margin: 0 2px 2px 2px;
-}
-/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly8vLi9hc3NldHMvYm9vdHN0cmFwLXRhYmxlL2ZpbHRlci1yb3cvYm9vdHN0cmFwLXRhYmxlLWZpbHRlci1yb3cuY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBOzs7O0dBSUc7O0FBRUg7SUFDSSxhQUFhO0NBQ2hCOztBQUVEO0lBQ0ksc0JBQXNCIiwiZmlsZSI6ImNzcy9ib290c3RyYXAtdGFibGUtZmlsdGVyLXJvdy5jc3MiLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIEBhdXRob3I6IERlbm5pcyBIZXJuw6FuZGV6XG4gKiBAd2ViU2l0ZTogaHR0cDovL2RqaHZzY2YuZ2l0aHViLmlvL0Jsb2dcbiAqIEB2ZXJzaW9uOiB2Mi4xLjFcbiAqL1xuXG4ubm8tZmlsdGVyLWNvbnRyb2wge1xuICAgIGhlaWdodDogMzRweDtcbn1cblxuLmZpbHRlci1jb250cm9sIHtcbiAgICBtYXJnaW46IDAgMnB4IDJweCAycHg7XG59XG5cblxuLy8gV0VCUEFDSyBGT09URVIgLy9cbi8vIC4vYXNzZXRzL2Jvb3RzdHJhcC10YWJsZS9maWx0ZXItcm93L2Jvb3RzdHJhcC10YWJsZS1maWx0ZXItcm93LmNzcyJdLCJzb3VyY2VSb290IjoiIn0=*/
+.no-filter-control{height:34px}.filter-control{margin:0 2px 2px}

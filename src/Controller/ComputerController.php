@@ -120,13 +120,16 @@ class ComputerController extends FacadeController {
 			$data["action"]["id"]=intval($computerid);
 			$data["action"]["status"]=($computerstatus=="true");
 
-/*			$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
+			$socket=new Socket(SSHGATEWAY,SSHGATEWAY_PORT);
 			$socket->send(JSON::encode($data,array("users","roles","tunnels")));
-			$data=json_decode($socket->receive());*/
+			$data=json_decode($socket->receive());
 
-
-			// Scan computers to update database
-			error_log("RECIBIDO...".print_r($data,true));
+			if ($data->ok) {
+				foreach($data->computers as $c) {
+					$computer=Computer::getInstance($c->id);
+					$computer->setStatus($c->status);
+				}
+			}
 			return $this->listComputersAction();
 		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
