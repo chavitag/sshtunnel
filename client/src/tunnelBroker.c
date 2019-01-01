@@ -40,10 +40,6 @@ void testRenew(void);
 void renewData(void);
 char *process(char *data);
 
-int veces=0;
-char bufrcv[1000000];
-char bufsnd[1000000];
-
 /*typedef struct tagComputer {
 	unsigned int id;
 	char domainname[];
@@ -53,13 +49,18 @@ char bufsnd[1000000];
 	byte status;
 } Computer;
 
-typedef struct tagTunnel {
+/*typedef struct tagTunnel {
 	unsigned int id;
 	unsigned short sourceport;
 	unsigned short destport;
 	char ip[];
 	byte started;
 } Tunnel;*/
+
+int veces=0;
+char bufrcv[1000000];
+char bufsnd[1000000];
+
 
 /** Protocol Definition
 
@@ -127,6 +128,8 @@ char *process(char *data) {
 			json_object_object_get_ex(jsaction,"status",&status);
 			printf("Recibido comando %s\n",json_object_get_string(command));
 		}
+
+
 
 		// Turn On Computers...
 		len=json_object_array_length(jscomputers);
