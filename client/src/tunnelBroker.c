@@ -29,8 +29,8 @@
 #define IP "127.0.0.1"
 #define PORT 1777 
 #define TIMERENEW	600
-#define REQUEST  "http://sshtunnel.xavitag.es/service?apikey=api-key-tunnel"
-#define RESPONSE "http://sshtunnel.xavitag.es/service?do=update&apikey=api-key-tunnel"
+#define REQUEST  "http://%s/service?apikey=api-key-tunnel"
+// #define RESPONSE "http://sshtunnel.xavitag.es/service?do=update&apikey=api-key-tunnel"
 
 extern int isAlive(const char *ip);
 extern int switchOn(char *ifname,const char *mac);
@@ -42,9 +42,10 @@ void testRenew(void);
 void renewData(void);
 char *process(char *data);
 
-int veces=0;
-char bufrcv[1000000];
-char bufsnd[1000000];
+int __veces=0;
+char __request[256];
+char __bufrcv[1000000];
+char __bufsnd[1000000];
 
 char *JSON_response(void);
 void renewData(void);
@@ -83,13 +84,10 @@ void processTunnels(json_object *jstunnels) {
 		json_object_object_get_ex(el,"started",&obj);
 		status=json_object_get_boolean(obj);
 
-		json_object_object_get_ex(el,"url",&obj);
-		url=json_object_get_string(obj);
-
-		t=newTunnel(id,sport,dport,ip,url);
+		t=newTunnel(id,sport,dport,ip);
 		running=getStatusTunnel(t);
 
-printf("%s-->%d RUNNING %d\n",JSON_Tunnel(t,bufsnd,sizeof(bufsnd)),status,running);
+printf("%s-->%d RUNNING %d\n",JSON_Tunnel(t,__bufsnd,sizeof(__bufsnd)),status,running);
 
 		if (!running && status) turnOnTunnel(t);
 		else if (running && !status) turnOffTunnel(t);
@@ -199,17 +197,17 @@ printf("RECEIVED %s\n",data);
 
 char *JSON_response(void) {
 	int len;
-	strcpy(bufsnd,"{\"ok\":true,\"computers\":");
-	len=strlen(bufsnd);
-	JSON_ComputerList(&bufsnd[len],sizeof(bufsnd)-len);
-	len=strlen(bufsnd);
-	strncat(bufsnd,",\"tunnels\":",sizeof(bufsnd)-len);
-	len=strlen(bufsnd);
-	JSON_TunnelList(&bufsnd[len],sizeof(bufsnd)-len);
-	len=strlen(bufsnd);
-	strncat(bufsnd,"}",sizeof(bufsnd)-len);
-	printf("RESPONSE: %s\n",bufsnd);
-	return bufsnd;
+	strcpy(__bufsnd,"{\"ok\":true,\"computers\":");
+	len=strlen(__bufsnd);
+	JSON_ComputerList(&__bufsnd[len],sizeof(__bufsnd)-len);
+	len=strlen(__bufsnd);
+	strncat(__bufsnd,",\"tunnels\":",sizeof(__bufsnd)-len);
+	len=strlen(__bufsnd);
+	JSON_TunnelList(&__bufsnd[len],sizeof(__bufsnd)-len);
+	len=strlen(__bufsnd);
+	strncat(__bufsnd,"}",sizeof(__bufsnd)-len);
+	printf("RESPONSE: %s\n",__bufsnd);
+	return __bufsnd;
 }
 
 void notify_end(int signal) {
@@ -243,9 +241,9 @@ void renewData(void) {
 	json_object *jstunnels=NULL;
 	json_object *ok=NULL;
 
-	printf("Refresh Info....\n");
-	veces++;
-	info=http_request(REQUEST,NULL,&size);
+	printf("Refresh Info....%s\n",__request);
+	__veces++;
+	info=http_request(__request,NULL,&size);
 	if (info!=NULL) {
 		jobj = json_tokener_parse(info);
 		if (json_object_object_get_ex(jobj,"ok",&ok) && json_object_get_boolean(ok)) {
@@ -258,13 +256,12 @@ void renewData(void) {
 
 void doWork(int skd,struct sockaddr_in *addr) {
 	// JSON command
-	int nc=recv(skd,bufrcv,sizeof(bufrcv),0);
+	int nc=recv(skd,__bufrcv,sizeof(__bufrcv),0);
 	if (nc>0) { 
-		bufrcv[nc]=0;
-		process(bufrcv);
-		send(skd,bufsnd,strlen(bufsnd),0);
+		__bufrcv[nc]=0;
+		process(__bufrcv);
+		send(skd,__bufsnd,strlen(__bufsnd),0);
 	}
-	close(skd);
 }
  
 void waitRequests(int port)
@@ -316,6 +313,7 @@ void waitRequests(int port)
 									flock(fl,LOCK_UN);
 									close(fl);
 								} 
+								close(skd);
 								exit(EXIT_SUCCESS);
 								break;
 							// Father: continue listening...
@@ -336,8 +334,12 @@ void waitRequests(int port)
 /** MAIN: Background process
 */
 void main(int argc,char *argv[]) {
-
 	pid_t pid, sid;
+	if (argc<2) {
+		printf("tunnelBroker url\n");
+		exit(0);
+	}
+	snprintf(__request,sizeof(__request),REQUEST,argv[1]);
 	if ((pid=fork())==-1)  {
          exit(EXIT_FAILURE); 	 
   }

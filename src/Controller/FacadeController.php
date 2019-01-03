@@ -12,15 +12,16 @@ use App\Entity\Computer;
 use App\Utils\JSON;
 use App\Utils\Socket;
 
-define("SSHGATEWAY","shuttle.iesrodeira.com");
-define("COMMIP","127.0.0.1");
-define("COMMPORT",1777);
+/*define("SSHGATEWAY","shuttle.iesrodeira.com");
+define("COMMIP","shuttle.iesrodeira.com");
+define("COMMPORT",63000); */
 
 class FacadeController extends Controller {
 	private $apikey;
 	private $actioncommand="do";
 	private $controllers=array();
 	private $rol=null;
+	public static $config;
 
 	/** Constructor
 	*/
@@ -30,6 +31,7 @@ class FacadeController extends Controller {
 		$this->setApikey("api-key-tunnel");
 		$this->addFacade("default","infoService");		// By default returns all tunnel list
 		$this->addFacade("infoservice","infoService");
+		FacadeController::$config=parse_ini_file("../src/Config.ini");
 	}
 
 	/**
@@ -105,7 +107,7 @@ class FacadeController extends Controller {
 			try {
 				$data=$this->info($computers);
 				if ($action!=null) $data["action"]=$action;
-				$socket=new Socket(COMMIP,COMMPORT);
+				$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
 				$socket->send(JSON::encode($data,array("users","roles","tunnels")));
 				$data=json_decode($socket->receive());
 				foreach($data->tunnels as $t) {

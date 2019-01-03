@@ -169,7 +169,6 @@
 	//
 	function saveTunnel() {
 		var data=$("#dataAddTunnelForm").serializeJSON();
-		var info=JSON.parse($("#ip").data("data"));
 		$("#_modal_service").modal('hide');
 		callServer("/save/tunnel","params="+JSON.stringify(data),reloadTable,"TABLETUNNELS");
 		$('#dataAddTunnelForm')[0].reset();

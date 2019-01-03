@@ -120,7 +120,7 @@ class ComputerController extends FacadeController {
 			$data["action"]["id"]=intval($computerid);
 			$data["action"]["status"]=($computerstatus=="true");
 
-			$socket=new Socket(COMMIP,COMMPORT);
+			$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
 			$socket->send(JSON::encode($data,array("users","roles","tunnels")));
 			$data=json_decode($socket->receive());
 

@@ -61,25 +61,26 @@
 		var status=$table.data("init");
 		if (!status) {
 			$table.data("init",true);
+			$table.attr("data-init",true);
 			{% if data is defined and data != null %} 
 				var data={{ data | json_encode | raw }};
 				$table.data("data",'{{ data | json_encode | raw }}');
 				if (params.data.offset==undefined)		params.success(data.rows)
 				else												params.success(data);
 			{% else %}
-		alert("A: "+JSON.stringify(params));
 				callServer("{{ajaxurl}}","do={{commandlist}}",function(data) { 
 					if (params.data.offset==undefined)		params.success(data.rows)
 					else												params.success(data);
 				});
 			{% endif %}
 		} else {
-		alert("B: "+JSON.stringify(params));
 			callServer("{{ajaxurl}}","do={{commandlist}}",function(data) {
 				if (params.data.offset==undefined)		params.success(data.rows)
 				else												params.success(data);
 				{% if select is defined and select != "null" %}
-					$("#{{select}}").data("query",JSON.stringify(params.data));
+					var datastr=JSON.stringify(params.data);
+					$("#{{select}}").data("query",datastr);
+					$("#{{select}}").attr("data-query",datastr);
 					reloadSelect("{{select}}",data);
 				{% endif %}
 			});
@@ -166,7 +167,9 @@
 		setTimeout(function() {
 			$table=initTable_{{idtable}}();
 			$table.on('load-success.bs.table' ,function(event,data) { 
-				$table.data("data",JSON.stringify(data));
+				var datastr=JSON.stringify(data);
+				$table.data("data",datastr);
+				$table.attr("data-data",datastr);
 				{% if select is defined and select != "null" %}
 					reloadSelect("{{select}}",data);
 				{% endif %}

@@ -8,6 +8,7 @@ use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Controller\FacadeController;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\TunnelRepository")
@@ -105,10 +106,6 @@ class Tunnel {
         return $this;
     }
 
-	 public function getUrl() {
-		return SSHGATEWAY.":".$this->sourceport;
-	 }
-
     /**
      * @return Collection|UserTunnels[]
      */
@@ -175,7 +172,7 @@ class Tunnel {
 											"description"=>$tr->getDescription(),
 											"destination"=>$c->getDomainname()." [".$c->getIp()."]",
 											"dport"=>$s->getName()." [".$s->getPort()."]",
-											"url"=>$t->getUrl(),
+											"url"=>FacadeController::$config["SSHGATEWAY"].":".$t->getSourceport(),
 											"status"=>$tr->isRunning());
 		}
 		return $data;
@@ -188,8 +185,6 @@ class Tunnel {
 		$entityManager=$doctrine->getManager();
 		if (!isset($data["description"]) || ($data["description"]==null)) throw new \Exception("La descripción no puede ser nula");
 
-		$tries=0;
-		$portnumber=rand(64000,65534);
 		$ports=array();
 
 		$this->setAttributes($data);
@@ -219,26 +214,14 @@ class Tunnel {
 				return $t;
 			}
 			$p=$t->getSourceport();
-			if ($p==$portnumber) $portnumber=0;
-			$ports[]=$p;
+			$ports[$p]=true;
 		}
-		if ($portnumber!=0) {
-			$this->setSourceport($portnumber);
+		for($pnum=64000; $pnum<65536; $pnum++) {
+			if (!isset($ports[$pnum])||($ports[$p]!==true)) break;
+		}
+		if ($pnum<65536) {
+			$this->setSourceport($pnum);
 			return $this;
-		}
-		while (($portnumber == 0) && ($tries < 20)) {
-			$portnumber=rand(64000,65534);
-			$valid=true;
-			foreach($ports as $p) {
-				if ($p==$portnumber) {
-					$valid=false; break;
-				}
-			}
-			if ($valid) {
-				$this->setSourceport($portnumber);
-				return $this;
-			}
-			$tries++;
 		}
 		throw new \Exception("No se encuentra puerto libre",100);
 	}

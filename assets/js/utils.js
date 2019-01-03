@@ -61,9 +61,10 @@ function getIdSelections(id) {
 }
 
 function reloadTable(data,id) {
-	$("#"+id).bootstrapTable("load",data);
-	$("#"+id).trigger("load-success.bs.table",data);
-	$("#"+id).trigger("uncheck-all.bs.table");
+	var table=$("#"+id);
+	table.bootstrapTable("load",data);
+	table.trigger("load-success.bs.table",data);
+	table.trigger("uncheck-all.bs.table");
 }
 
 function fixmargins(id,value,row,index,field) { 
@@ -82,9 +83,11 @@ function reloadSelect(idselect,data) {
 	var select=$("#"+idselect);
 	var value=select.data("value");
 	var text=select.data("text");
+	var datastr=JSON.stringify(data);
 
 	select.empty();
-	select.data("data",JSON.stringify(data));
+	select.data("data",datastr);
+	select.attr("data-data",datastr);
 	for(var d in data.rows) {
 		var sel="";
 		var dis="";
