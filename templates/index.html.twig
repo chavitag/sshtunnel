@@ -105,7 +105,7 @@
 		var $table=$("#TABLETUNNELS"); 
 		var row=$(sw).closest("#TABLETUNNELS tr"); 
 		var idx=$(row).data("index");
-		var data=JSON.parse($table.data("data")); alert(JSON.stringify(data));
+		var data=JSON.parse($table.data("data"));
 		data.rows[idx].status=status;
 		$table.data("data",JSON.stringify(data));
 		callServer("/change/tunnel","id="+id+"&status="+status,reloadTable,"TABLETUNNELS");
