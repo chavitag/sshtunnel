@@ -108,25 +108,30 @@ class ComputerController extends FacadeController {
 
 	/** 
 	* @Route("/change/computer", name="c_computer")
+	* @Route("/status/computers", name="st_computer")
 	*/
-	public function switchComputerAction(Request $request) {
+	public function switchComputerAction(Request $request=null) {
 		$socket=null;
 		try {
-			$computerid=$request->request->get("id");
-			$computerstatus=$request->request->get("status");
 			$data=$this->info(true);
-			$data["action"]=array();
-			$data["action"]["command"]="change_computer_status";
-			$data["action"]["id"]=intval($computerid);
-			$data["action"]["status"]=($computerstatus=="true");
+			$computerid=$request->request->get("id");
+			if ($computerid!=null) {
+				$computerstatus=$request->request->get("status");
+				$data["action"]=array();
+				$data["action"]["command"]="change_computer_status";
+				$data["action"]["id"]=intval($computerid);
+				$data["action"]["status"]=($computerstatus=="true");
+			}
 
+error_log("Consultando....:");
 			$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
 			$socket->send(JSON::encode($data,array("users","roles","tunnels")));
 			$data=json_decode($socket->receive());
-
+error_log("------> ".print_r($data,TRUE));
+			$doctrine=$this->getDoctrine();
 			if ($data->ok) {
 				foreach($data->computers as $c) {
-					$computer=Computer::getInstance($c->id);
+					$computer=Computer::getInstance($doctrine,$c->id);
 					$computer->setStatus($c->status);
 				}
 			}

@@ -150,8 +150,6 @@
 	function statusFormatterComputer(value,row,index,field) { 
 		var html="{{ include("/templates/widgets/switch.html.twig",{"id":"%rowid%", "name": "onoffcomputer", "checked":"%status%","callback":"switchComputer"}) }}";
 
-alert(value);
-
 		// Value  ---> 0: off, 1: starting, 2: off ???
 		if (value) html=html.replace(/%status%/g,"checked");
 		else 		  html=html.replace(/%status%/g,"");

@@ -87,7 +87,7 @@ void processTunnels(json_object *jstunnels) {
 		t=newTunnel(id,sport,dport,ip);
 		running=getStatusTunnel(t);
 
-printf("%s-->%d RUNNING %d\n",JSON_Tunnel(t,__bufsnd,sizeof(__bufsnd)),status,running);
+//printf("%s-->%d RUNNING %d\n",JSON_Tunnel(t,__bufsnd,sizeof(__bufsnd)),status,running);
 
 		if (!running && status) turnOnTunnel(t);
 		else if (running && !status) turnOffTunnel(t);
@@ -140,7 +140,7 @@ void doCommand(json_object *jsaction) {
 	Tunnel *t;
 
 	if (jsaction!=NULL) {
-		printf("\t ** Recibido Comando %s\n",json_object_to_json_string(jsaction));
+		//printf("\t ** Recibido Comando %s\n",json_object_to_json_string(jsaction));
 
 		json_object_object_get_ex(jsaction,"id",&obj);
 		id=json_object_get_int(obj);
@@ -151,7 +151,7 @@ void doCommand(json_object *jsaction) {
 		json_object_object_get_ex(jsaction,"status",&obj);
 		status=json_object_get_boolean(obj);
 
-		printf("Recibido comando %s\n",command);
+		//printf("Recibido comando %s\n",command);
 		if (strcmp(command,"change_computer_status")==0) {
 			c=getComputer(id);
 			if (status) {
@@ -178,7 +178,7 @@ char *process(char *data) {
 	json_object *jscomputers=NULL;
 	json_object *ok=NULL;
 
-printf("RECEIVED %s\n",data);
+//printf("RECEIVED %s\n",data);
 
 	jobj = json_tokener_parse(data);
 	if (json_object_object_get_ex(jobj,"ok",&ok) && json_object_get_boolean(ok)) {
@@ -206,7 +206,7 @@ char *JSON_response(void) {
 	JSON_TunnelList(&__bufsnd[len],sizeof(__bufsnd)-len);
 	len=strlen(__bufsnd);
 	strncat(__bufsnd,"}",sizeof(__bufsnd)-len);
-	printf("RESPONSE: %s\n",__bufsnd);
+	//printf("RESPONSE: %s\n",__bufsnd);
 	return __bufsnd;
 }
 
@@ -241,7 +241,7 @@ void renewData(void) {
 	json_object *jstunnels=NULL;
 	json_object *ok=NULL;
 
-	printf("Refresh Info....%s\n",__request);
+	//printf("Refresh Info....%s\n",__request);
 	__veces++;
 	info=http_request(__request,NULL,&size);
 	if (info!=NULL) {

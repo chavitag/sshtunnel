@@ -27,14 +27,13 @@
 <table id="{{idtable}}" data-toolbar="#toolbar_{{idtable}}"
 	data-unique-id="id"
 	data-show-refresh="true"
-	data-pagination="true" 
+	data-pagination="false" 
 	{% if detailview is defined and detailview != "" %}
 	data-detail-view="true"
 	{% endif %}
 	{% if paginationSwitch is defined and paginationSwitch == true %}
 	data-show-pagination-switch="true"
 	{% endif %}
-	data-page-list="[10, 25, 50, 100, ALL]"
 	data-show-footer="false"
 	{% if search is defined %}
 	data-search="true" 
@@ -151,6 +150,7 @@
 			height: $table.parent().height(),
 			ajax: table_ajaxRequest_{{idtable}},
 			searchOnEnterKey: true,
+			pageList: [10, 25, 50, 100, 'All'],
 			columns:[
 				{% if checkbox is defined %}
 					{ field:"check", checkbox:"true", align:"center", valign:"middle"},
