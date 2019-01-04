@@ -51,9 +51,19 @@
 <script>
 	{% if navfunction == "yes" %}
 		function openGrid_{{idselect}}() {
+			{% if reloadfnc is defined %}
+				{{reloadfnc}}(callbackOpenModalTemplate_{{idselect}});
+			{% else %}
 			var data=JSON.parse($("#{{idselect}}").data("data"));
 			openModalTemplate("{{idselect}}","{{title}}","{{template}}",{ "id":"{{idselect}}","modalsize":"{{modalsize}}","rol":"{{rol}}","data":data });
+			{% endif %}
 		}
+
+		{% if reloadfnc is defined %}
+			function callbackOpenModalTemplate_{{idselect}}(data) {
+				openModalTemplate("{{idselect}}","{{title}}","{{template}}",{ "id":"{{idselect}}","modalsize":"{{modalsize}}","rol":"{{rol}}","data":data });
+			}
+		{% endif %}
 	{% endif %}
 
 	$(document).ready(function() {

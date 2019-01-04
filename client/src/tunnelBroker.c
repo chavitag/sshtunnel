@@ -102,6 +102,7 @@ void processComputers(json_object *jscomputers) {
 	const char *ip;
 	const char *desc;
 	const char *mac;
+	time_t startTime;
 	Computer *c;
 	int idx;
 
@@ -126,7 +127,12 @@ void processComputers(json_object *jscomputers) {
 		json_object_object_get_ex(el,"mac",&obj);
 		mac=json_object_get_string(obj);
 
-		c=newComputer(id,dn,ip,desc,mac);
+		if (json_object_object_get_ex(el,"startTime",&obj))
+			startTime=json_object_get_int(obj);
+		else 
+			startTime=0;
+
+		c=newComputer(id,dn,ip,desc,mac,startTime);
 		getStatusComputer(c);
 	}
 }

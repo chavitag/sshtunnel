@@ -85,17 +85,6 @@
 	{% endif %}
 </div>
 
-<div class="modal fade" id="waitModal" tabindex="-1" role="dialog" aria-labelledby="waitModalTitle" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-body">
-          <h5 class="modal-title" id="waitModalMsg"></h5>
-      </div>
-    </div>
-  </div>
-</div>
-
-
 {% endblock %}
 
 {% block javascripts %}
@@ -103,22 +92,6 @@
 <script>
 	__select__content["destport"]={{services|json_encode|raw}};
 	__select__content["computers"]={{computers|json_encode|raw}};
-
-var __app;
-__app = __app || (function () {
-    var pleaseWaitDiv = $('#waitModal');
-    return {
-        showPleaseWait: function(msg) {
-				$("#waitModalMsg").html(msg);
-            pleaseWaitDiv.modal();
-        },
-        hidePleaseWait: function () {
-            pleaseWaitDiv.modal('hide');
-        },
-
-    };
-})();
-
 
 	function settings() {
 		$( "#settings" ).toggle("slow");
@@ -180,13 +153,21 @@ __app = __app || (function () {
 		{% if user.rol.rol == "ADMIN" %}
 			params["navfunction"]="yes";
 		{% endif %}*/
-		__app.showPleaseWait("Examinando estado dos equipos...");
+		messageAlert("Examinando estado dos equipos...",INFO);
 		callServer("/status/computers","",function(data) {
-			__app.hidePleaseWait();
-			alert(JSON.stringify(__select__content["computers"]));
-			alert(JSON.stringify(data));
+			$("#alertbody").alert("close");
+			__select__content["computers"]=data;
 			var params={"id":"wakeup","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}"};
 			openModalTemplate('wakeup','Encendido de Equipos',"_modalbody_computers",params);
+		});
+	}
+
+	function refreshComputers(callback) {
+		messageAlert("Examinando estado dos equipos...",INFO);
+		callServer("/status/computers","",function(data) {
+			$("#alertbody").alert("close");
+			__select__content["computers"]=data;
+			callback(data);
 		});
 	}
 

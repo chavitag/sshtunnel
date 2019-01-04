@@ -50,9 +50,12 @@ class Computer
 
 	 private $status;
 
+	 private $startTime;
+
     public function __construct()
     {
         $this->status = false;
+		  $this->startTime = 0;
         $this->roles = new ArrayCollection();
         $this->tunnels = new ArrayCollection();
     }
@@ -146,6 +149,15 @@ class Computer
 		$this->status=$status;
 	}
 
+	public function setStartTime($time) {
+		$this->startTime=$time;
+	}
+
+	public function getStartTime() {
+		return $this->startTime;
+	}
+
+
     /**
      * @return Collection|UserTunnels[]
      */
@@ -184,7 +196,7 @@ class Computer
 		$computers=$user->getRol()->getComputers();
 		$data=array("total"=>count($computers),"rows"=>array());
 		foreach($computers as $c) {
-			$row=array("id"=>$c->getId(),"domain"=>$c->getDomainname(),"ip"=>$c->getIp(),"description"=>$c->getDescription(),"mac"=>$c->getMac(),"running"=>$c->getStatus());
+			$row=array("id"=>$c->getId(),"domain"=>$c->getDomainname(),"ip"=>$c->getIp(),"description"=>$c->getDescription(),"mac"=>$c->getMac(),"running"=>$c->getStatus(),"startTime"=>$c->getStartTime());
 			$data["rows"][]=$row;
 		}
 		return $data;

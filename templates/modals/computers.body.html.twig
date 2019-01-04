@@ -140,10 +140,10 @@
 			$(sw).prop("checked",false);
 			return;
 		}
-		data.rows[idx].running=running;
-		data.rows[idx].startTime=Date.now();
+		//data.rows[idx].running=running;
+		//data.rows[idx].startTime=Date.now();
 		$(sw).parent().addClass("onoffswitch-running"); alert(JSON.stringify(data));
-		$table.data("data",JSON.stringify(data));
+		//$table.data("data",JSON.stringify(data));
 		callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
 	}
 
@@ -156,6 +156,7 @@
 		html=html.replace(/%rowid%/g,row.id)
 		var result = $('<textarea />').html(html).text();
 		if ((row.startTime!=undefined)&&(row.startTime!="0")) html=html.replace(/%running%/g,"onoffswitch-running");
+		else																	html=html.replace(/%running%/g,"");
 		return result;
 	}
 </script>

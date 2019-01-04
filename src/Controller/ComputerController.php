@@ -123,16 +123,17 @@ class ComputerController extends FacadeController {
 				$data["action"]["status"]=($computerstatus=="true");
 			}
 
-error_log("Consultando....:");
 			$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
 			$socket->send(JSON::encode($data,array("users","roles","tunnels")));
-			$data=json_decode($socket->receive());
-error_log("------> ".print_r($data,TRUE));
-			$doctrine=$this->getDoctrine();
+			$info=$socket->receive(65535);
+			$data=json_decode($info);
+
 			if ($data->ok) {
+				$doctrine=$this->getDoctrine();
 				foreach($data->computers as $c) {
 					$computer=Computer::getInstance($doctrine,$c->id);
 					$computer->setStatus($c->status);
+					$computer->setStartTime($c->startTime);
 				}
 			}
 			return $this->listComputersAction();

@@ -167,7 +167,7 @@
 		setTimeout(function() {
 			$table=initTable_{{idtable}}();
 			$table.on('load-success.bs.table' ,function(event,data) { 
-				var datastr=JSON.stringify(data);
+				var datastr=JSON.stringify(data); alert("reloading table : "+datastr);
 				$table.data("data",datastr);
 				$table.attr("data-data",datastr);
 				{% if select is defined and select != "null" %}
