@@ -81,7 +81,7 @@ class ComputerController extends FacadeController {
 		} catch (\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		}
-		return $this->listComputersAction();
+		return $this->verifyComputerAction();
 	}
 
 	/** 
@@ -97,7 +97,7 @@ class ComputerController extends FacadeController {
 				$entityManager->remove($computer);
 			}
 			$entityManager->flush();
-			return $this->listComputersAction();
+			return $this->verifyComputerAction();
 		} catch(ForeignKeyConstraintViolationException $e) {
 			return $this->json(array("ok"=>"false","msg"=>"Existen registros relacionados","code"=>$e->getCode()));
 		} catch(\Exception $e) {
@@ -110,17 +110,19 @@ class ComputerController extends FacadeController {
 	* @Route("/change/computer", name="c_computer")
 	* @Route("/status/computers", name="st_computer")
 	*/
-	public function switchComputerAction(Request $request=null) {
+	public function verifyComputerAction(Request $request=null) {
 		$socket=null;
 		try {
 			$data=$this->info(true);
-			$computerid=$request->request->get("id");
-			if ($computerid!=null) {
-				$computerstatus=$request->request->get("status");
-				$data["action"]=array();
-				$data["action"]["command"]="change_computer_status";
-				$data["action"]["id"]=intval($computerid);
-				$data["action"]["status"]=($computerstatus=="true");
+			if ($request!=null) {
+				$computerid=$request->request->get("id");
+				if ($computerid!=null) {
+					$computerstatus=$request->request->get("status");
+					$data["action"]=array();
+					$data["action"]["command"]="change_computer_status";
+					$data["action"]["id"]=intval($computerid);
+					$data["action"]["status"]=($computerstatus=="true");
+				}
 			}
 
 			$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
@@ -137,7 +139,6 @@ class ComputerController extends FacadeController {
 				}
 			}
 			return $this->listComputersAction();
-			//return $this->update(array("command"=>"change_computer_status","id"=>intval($computerid),"status"=>($computerstatus=="true")));
 		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		} finally {

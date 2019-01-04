@@ -5,6 +5,7 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\HttpFoundation\Session\Session;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\ComputerRepository")
@@ -50,12 +51,14 @@ class Computer
 
 	 private $status;
 
-	 private $startTime;
+	 private $session;
 
     public function __construct()
     {
+//$this->session = new Session();
+//$this->session->start();
+
         $this->status = false;
-		  $this->startTime = 0;
         $this->roles = new ArrayCollection();
         $this->tunnels = new ArrayCollection();
     }
@@ -150,11 +153,13 @@ class Computer
 	}
 
 	public function setStartTime($time) {
-		$this->startTime=$time;
+		$this->session = new Session();
+		$this->session->set("start_".$this->id,$time);
 	}
 
 	public function getStartTime() {
-		return $this->startTime;
+		$this->session = new Session();
+		return $this->session->get("start_".$this->id,0);
 	}
 
 

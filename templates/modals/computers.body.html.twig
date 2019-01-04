@@ -8,7 +8,7 @@
 {% if rol == "ADMIN" %}
 	{% include "widgets/table.html.twig" with 
 		{	"idtable":"__table__"~id,
-			"ajaxurl":"/list/computers.json",
+			"ajaxurl":"/status/computers",
 			"commandlist":"l_computers",
 			"checkbox":true,
 			"select":id,
@@ -32,7 +32,7 @@
 {% else %}
 	{% include "widgets/table.html.twig" with 
 		{	"idtable":"__table__"~id,
-			"ajaxurl":"/list/computers.json",
+			"ajaxurl":"/status/computers",
 			"commandlist":"l_computers",
 			"checkbox":true,
 			"select":id,
@@ -134,17 +134,18 @@
 		var $table=$("#__table__{{id}}");
 		var row=$(sw).closest("#__table__{{id}} tr");
 		var idx=$(row).data("index");
-		var data=JSON.parse($table.data("data"));
-		if ((data.rows[idx].mac=="") && (running)) {
-			messageAlert("Imposible encender equipo, no disponemos de su dirección MAC",WARNING,3000);
-			$(sw).prop("checked",false);
-			return;
+		try {
+			var data=JSON.parse($table.data("data"));
+			if ((data.rows[idx].mac=="") && (running)) {
+				messageAlert("Imposible encender equipo, no disponemos de su dirección MAC",WARNING,3000);
+				$(sw).prop("checked",false);
+				return;
+			}
+			$(sw).parent().addClass("onoffswitch-running");
+			callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
+		} catch(e) {
+			messageAlert(e,ERROR);
 		}
-		//data.rows[idx].running=running;
-		//data.rows[idx].startTime=Date.now();
-		$(sw).parent().addClass("onoffswitch-running"); alert(JSON.stringify(data));
-		//$table.data("data",JSON.stringify(data));
-		callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
 	}
 
 	function statusFormatterComputer(value,row,index,field) { 
@@ -154,9 +155,9 @@
 		if (value) html=html.replace(/%status%/g,"checked");
 		else 		  html=html.replace(/%status%/g,"");
 		html=html.replace(/%rowid%/g,row.id)
-		var result = $('<textarea />').html(html).text();
 		if ((row.startTime!=undefined)&&(row.startTime!="0")) html=html.replace(/%running%/g,"onoffswitch-running");
 		else																	html=html.replace(/%running%/g,"");
+		var result = $('<textarea />').html(html).text();
 		return result;
 	}
 </script>
