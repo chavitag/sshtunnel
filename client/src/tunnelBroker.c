@@ -67,7 +67,6 @@ void processTunnels(json_object *jstunnels) {
 
 	for(idx=0;idx<len;idx++) {
 		el=json_object_array_get_idx(jstunnels,idx);
-		printf("\t ** Procesando %s\n",json_object_to_json_string(el));
 
 		json_object_object_get_ex(el,"id",&obj);
 		id=json_object_get_int(obj);
@@ -86,8 +85,6 @@ void processTunnels(json_object *jstunnels) {
 
 		t=newTunnel(id,sport,dport,ip);
 		running=getStatusTunnel(t);
-
-//printf("%s-->%d RUNNING %d\n",JSON_Tunnel(t,__bufsnd,sizeof(__bufsnd)),status,running);
 
 		if (!running && status) turnOnTunnel(t);
 		else if (running && !status) turnOffTunnel(t);
@@ -110,7 +107,6 @@ void processComputers(json_object *jscomputers) {
 
 	for (idx=0;idx<len;idx++) {
 		el=json_object_array_get_idx(jscomputers,idx);
-		printf("\t ** Procesando %s\n",json_object_to_json_string(el));
 
 		json_object_object_get_ex(el,"id",&obj);
 		id=json_object_get_int(obj);
@@ -146,8 +142,6 @@ void doCommand(json_object *jsaction) {
 	Tunnel *t;
 
 	if (jsaction!=NULL) {
-		//printf("\t ** Recibido Comando %s\n",json_object_to_json_string(jsaction));
-
 		json_object_object_get_ex(jsaction,"id",&obj);
 		id=json_object_get_int(obj);
 
@@ -157,23 +151,26 @@ void doCommand(json_object *jsaction) {
 		json_object_object_get_ex(jsaction,"status",&obj);
 		status=json_object_get_boolean(obj);
 
-		//printf("Recibido comando %s\n",command);
 		if (strcmp(command,"change_computer_status")==0) {
 			c=getComputer(id);
-			if (status) {
-				if (c!=NULL) turnOnComputer(c);
-			} else {
-				json_object_object_get_ex(jsaction,"credentials",&obj);
-				if (c!=NULL) turnOffComputer(c,json_object_get_string(obj));
+			if (c!=NULL) {
+				if (status) {
+					turnOnComputer(c);
+				} else {
+					json_object_object_get_ex(jsaction,"credentials",&obj);
+					turnOffComputer(c,json_object_get_string(obj));
+				}
 			} 
-		} else if (strcmp(command,"change_tunnel_status")==0) {
+		} /*else if (strcmp(command,"change_tunnel_status")==0) {
 			t=getTunnel(id);
-			if (status) {
-				if (t!=NULL) turnOnTunnel(t);
-			} else {
-				if (t!=NULL) turnOffTunnel(t);
+			if (t!=NULL) {
+				if (status) {
+					turnOnTunnel(t);
+				} else {
+					turnOffTunnel(t);
+				}
 			}
-		}
+		}*/
 	}
 }
 
@@ -184,16 +181,12 @@ char *process(char *data) {
 	json_object *jscomputers=NULL;
 	json_object *ok=NULL;
 
-//printf("RECEIVED %s\n",data);
-
 	jobj = json_tokener_parse(data);
 	if (json_object_object_get_ex(jobj,"ok",&ok) && json_object_get_boolean(ok)) {
 		json_object_object_get_ex(jobj, "action",&jsaction);
 		json_object_object_get_ex(jobj, "tunnels",&jstunnels);
 		json_object_object_get_ex(jobj, "computers",&jscomputers);
 
-		
-		doCommand(jsaction);
 		if (jstunnels!=NULL) processTunnels(jstunnels);
 		if (jscomputers!=NULL) processComputers(jscomputers);
 		doCommand(jsaction);
@@ -212,7 +205,6 @@ char *JSON_response(void) {
 	JSON_TunnelList(&__bufsnd[len],sizeof(__bufsnd)-len);
 	len=strlen(__bufsnd);
 	strncat(__bufsnd,"}",sizeof(__bufsnd)-len);
-	//printf("RESPONSE: %s\n",__bufsnd);
 	return __bufsnd;
 }
 
@@ -247,7 +239,6 @@ void renewData(void) {
 	json_object *jstunnels=NULL;
 	json_object *ok=NULL;
 
-	//printf("Refresh Info....%s\n",__request);
 	__veces++;
 	info=http_request(__request,NULL,&size);
 	if (info!=NULL) {
@@ -312,12 +303,12 @@ void waitRequests(int port)
 								// One by one, please... register time of access...
 								fl=open("/tmp/lck.lck",O_WRONLY|O_CREAT,S_IWRITE|S_IREAD);
 								if (fl!=-1) {
+									doWork(skd,&addr);
 									flock(fl,LOCK_EX);
 									now=time(NULL);
 									write(fl,&now,sizeof(time_t));
-									doWork(skd,&addr);
-									flock(fl,LOCK_UN);
 									close(fl);
+									flock(fl,LOCK_UN);
 								} 
 								close(skd);
 								exit(EXIT_SUCCESS);
@@ -341,6 +332,8 @@ void waitRequests(int port)
 */
 void main(int argc,char *argv[]) {
 	pid_t pid, sid;
+	int logfile;
+
 	if (argc<2) {
 		printf("tunnelBroker url\n");
 		exit(0);
@@ -356,10 +349,17 @@ void main(int argc,char *argv[]) {
 	printf("Error setsid %s\n",strerror(errno));
   	exit(EXIT_FAILURE);
   }
-  
-  close(STDIN_FILENO);
-//close(STDOUT_FILENO);
-//close(STDERR_FILENO);
-  waitRequests(PORT);	
-  exit(EXIT_SUCCESS);		    
+  logfile=open("/var/log/tunnel.log",O_RDWR|O_CREAT); 
+  if (logfile!=-1) {
+		close(STDOUT_FILENO);
+		close(STDERR_FILENO);
+		dup(logfile);
+		dup(logfile);
+		close(STDIN_FILENO);
+		waitRequests(PORT);
+		close(logfile);
+		exit(EXIT_SUCCESS);		    
+	}
+	printf("ERROR %s\n",strerror(errno));
+	exit(EXIT_FAILURE);
 }

@@ -23,13 +23,14 @@ function callServer(controller,query,callback,params,type,context) {
 			try {
 				var r=JSON.parse(data); 
 				messageAlert("ERROR: "+data.msg,ERROR);
+				if (data.code==-1) document.location="/";
 			} catch(e) {
 				callback(data,params,context);
 			}
 		} else {
 			if ((!data instanceof Object) || (data.ok!==undefined && data.ok!==true)) {
-				if (data.code==2) document.location="/";
 				messageAlert("ERROR: "+data.msg,ERROR);
+				if (data.code==-1) document.location="/";
 			}
 			else {
 				if ((callback!==undefined) && (callback!="") && (callback!=null)) callback(data,params,context);

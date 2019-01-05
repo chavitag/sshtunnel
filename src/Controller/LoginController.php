@@ -68,7 +68,7 @@ class LoginController extends Controller {
 	*/
 	public function getTemplate(Request $request,$folder,$filename="") {
 		$user=$this->getUser();
-		if ($user==null) return $this->json(array("ok"=>"false","msg"=>"La sesión ha finalizado","code"=>0));
+		if ($user==null) return $this->json(array("ok"=>"false","msg"=>"La sesión ha finalizado","code"=>-1));
 		$appPath = $this->container->getParameter('kernel.root_dir');
 		if ($filename=="")	$filename=$appPath."/../templates/$folder";
 		else 						$filename=$appPath."/../templates/$folder/$filename";

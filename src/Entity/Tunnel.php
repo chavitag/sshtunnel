@@ -161,7 +161,7 @@ class Tunnel {
 			do=get_tunnels
 	*/
 	public static function getTunnels($user) {
-		if ($user==null)	throw new \Exception("Sesión no iniciada");
+		if ($user==null)	throw new \Exception("Sesión no iniciada",-1);
 		$tunnels=$user->getTunnels();
 		$data=array("total"=>count($tunnels),"rows"=>array());
 		foreach($tunnels as $tr) {

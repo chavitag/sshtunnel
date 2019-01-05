@@ -197,7 +197,7 @@ class Computer
 	/** Gets available user computers, and returns an associative array formatted for bootstrap-table
 	*/
 	public static function getComputers($user) {
-		if ($user==null)	throw new \Exception("Sesión no iniciada");
+		if ($user==null)	throw new \Exception("Sesión no iniciada",-1);
 		$computers=$user->getRol()->getComputers();
 		$data=array("total"=>count($computers),"rows"=>array());
 		foreach($computers as $c) {

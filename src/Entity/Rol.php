@@ -41,6 +41,7 @@ class Rol
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Computer", mappedBy="roles")
+     * @ORM\OrderBy({"ip" = "ASC"})
      */
     private $computers;
 

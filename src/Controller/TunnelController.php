@@ -44,7 +44,7 @@ class TunnelController extends FacadeController {
 	/**
 	*	@Route("/list/tunnels.json",name="l_tunnels")
 	*/
-	public function listTunnelsAction() {
+	public function listTunnelsAction(Request $request=null) {
 		$data=Tunnel::getTunnels($this->getUser());
 		return $this->json($data);
 	}
@@ -85,7 +85,7 @@ class TunnelController extends FacadeController {
 						if (count($l) > 0)	$entityManager->persist($t);
 						else 						$entityManager->remove($t);
 						$entityManager->remove($u_tunnel);
-					} else throw new Exception("No se pueden borrar túneles activos");
+					} else throw new \Exception("No se pueden borrar túneles activos");
 				}
 				$entityManager->persist($user);
 			}
