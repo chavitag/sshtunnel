@@ -182,7 +182,7 @@
 	//
 	function saveTunnel() {
 		var data=$("#dataAddTunnelForm").serializeJSON();
-		$("#_modal_service").modal('hide');
+		$("#_modal_service").modal('hide'); alert(JSON.stringify(data));
 		callServer("/save/tunnel","params="+JSON.stringify(data),reloadTable,"TABLETUNNELS");
 		$('#dataAddTunnelForm')[0].reset();
 	}

@@ -140,7 +140,11 @@ class Tunnel {
 		$propertyAccessor = PropertyAccess::createPropertyAccessor();
 		foreach($params as $k=>$v) {
 			try {
-				$propertyAccessor->setValue($this, $k,$v);
+				// Chapuza para unificar os nomes das táboas de ordenadores e do select
+				// computers --> ip
+				// computers-row-id --> ip-row-id
+				if ($k=="computers") $propertyAccessor->setValue($this,"ip",$v);
+				else 						$propertyAccessor->setValue($this, $k,$v);
 			} catch (NoSuchPropertyException $e) { } 
 		}
 	}
@@ -196,7 +200,7 @@ class Tunnel {
 		$usertunnel->setDescription($data["description"]);
 		$usertunnel->setRunning(false);
 	
-		$usertunnel->setComputer($entityManager->getReference(Computer::class,$data["ip-row-id"]));
+		$usertunnel->setComputer($entityManager->getReference(Computer::class,$data["computers-row-id"]));
 		$usertunnel->setService($entityManager->getReference(Service::class,$data["destport-row-id"]));
 
 		$this->addUser($usertunnel);
