@@ -8,7 +8,7 @@
 			<label for="ip">Destino</label>
 			<!--<input name="ip" value="" class="form-control form-control-sm" type="text" placeholder="Indica a IP do destino do túnel">-->
 			{% include "widgets/select.html.twig" with 
-				{"idselect":"ip","data":computers, "url":"/list/computers.json", "modalsize":"modal-1024", "title":"Servidores", "value":"ip", "text":"domain","navfunction":navfunction,"rol":rol,"reloadfnc":"refreshComputers"}
+				{"idselect":"computers","data":computers, "url":"/list/computers.json", "modalsize":"modal-1024", "title":"Servidores", "value":"ip", "text":"domain","navfunction":navfunction,"rol":rol,"reloadfnc":"refreshComputers"}
 			%}
 		</div>
 		<div class="form-group col-md-6">

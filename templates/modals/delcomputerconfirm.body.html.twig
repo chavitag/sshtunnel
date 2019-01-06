@@ -1,0 +1,10 @@
+Se borrarán os seguintes equipos:
+<ul>
+	{% for c in computers %}
+		<li><span style="font-weight:bold;">{{c.description}}</span>
+			<div style="font-size: 70%">
+				<span style="font-weight: bold">{{c.domain}}</span>: ({{c.ip}})
+			</div>
+		</li>
+	{% endfor %}
+</ul>

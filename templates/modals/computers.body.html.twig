@@ -71,14 +71,32 @@
 		callServer("/update/computer/roles","id="+$(select).data("info")+"&roles="+JSON.stringify(query));
 	}
 
+
+	function clearSelectionsComputers() {
+		$("#__table__computers").bootstrapTable("uncheckAll");
+	}
+
 	function delComputer() {
-		var $table=$("#__table__{{id}}");
+		var $table=$("#__table__computers"); 
+		var selections=$table.bootstrapTable("getSelections");
+		var params={"computers": selections,"onclose":"clearSelectionsComputers",
+						"buttons":[{"id":"delcomputerbtn","class":"btn btn-primary","txt":"Borrar","callback":"delComputerAction"}] };
+		openModalTemplate('delcomputerconfirm','Está vostede seguro?',"_modalbody_delcomputer",params);
+		$(event.target).prop('disabled',true);
+	}
+
+	function delComputerAction() {
+		var $table=$("#__table__computers");
 		var ids=[];
+		$("#_modal_delcomputerconfirm").modal("hide");
 		var idx=$table.bootstrapTable("getSelections");
 		idx.forEach(function(item,index) {
 			ids.push(item.id);
 		});
-		if (ids.length > 0)	callServer("/delete/computer","params="+JSON.stringify(ids),reloadTable,"__table__{{id}}");
+		if (ids.length > 0)	{
+			messageAlert("Examinando estado dos equipos...",INFO);
+			callServer("/delete/computer","params="+JSON.stringify(ids),reloadTable,"__table__{{id}}");
+		}
 	}
 
 	function newComputer(computer) {
@@ -112,6 +130,7 @@
 	function saveComputer() {
 		var data=$("#dataAddComputerForm").serializeJSON();
 		$("#_modal_newcomputer").modal('hide');
+		messageAlert("Examinando estado dos equipos...",INFO);
 		callServer("/save/computer","params="+JSON.stringify(data),reloadTable,"__table__{{id}}");
 		$('#dataAddComputerForm')[0].reset();
 	}
@@ -142,6 +161,7 @@
 				return;
 			}
 			$(sw).parent().addClass("onoffswitch-running");
+			messageAlert("Examinando estado dos equipos...",INFO);
 			callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
 		} catch(e) {
 			messageAlert(e,ERROR);

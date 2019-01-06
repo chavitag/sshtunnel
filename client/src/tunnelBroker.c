@@ -333,6 +333,8 @@ void waitRequests(int port)
 void main(int argc,char *argv[]) {
 	pid_t pid, sid;
 	int logfile;
+	Tunnel *t;
+	int running;
 
 	if (argc<2) {
 		printf("tunnelBroker url\n");
@@ -356,6 +358,11 @@ void main(int argc,char *argv[]) {
 		dup(logfile);
 		dup(logfile);
 		close(STDIN_FILENO);
+
+		t=newTunnel(0,63000,1777,"127.0.0.1");
+		running=getStatusTunnel(t);
+		if (!running) turnOnTunnel(t);
+
 		waitRequests(PORT);
 		close(logfile);
 		exit(EXIT_SUCCESS);		    

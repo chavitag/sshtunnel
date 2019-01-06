@@ -173,12 +173,14 @@
 		setTimeout(function() {
 			$table=initTable_{{idtable}}();
 			$table.on('load-success.bs.table' ,function(event,data) { 
+				$table=$("#{{idtable}}");
 				var datastr=JSON.stringify(data);
 				$table.data("data",datastr);
 				$table.attr("data-data",datastr);
 				{% if select is defined and select != "null" %}
 					reloadSelect("{{select}}",data);
 				{% endif %}
+				$("#alertbody").alert("close");
 			});
 			$("#maketable_{{idtable}}").remove();
 		},200);

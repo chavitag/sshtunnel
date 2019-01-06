@@ -113,14 +113,14 @@
 		$table.bootstrapTable("updateByUniqueId",data.rows[idx].id,trow);*/
 	}
 
-	function clearSelections() {
+	function clearSelectionsTunnels() {
 		$("#TABLETUNNELS").bootstrapTable("uncheckAll");
 	}
 
 	function delTunnel(event) {
 		var $table=$("#TABLETUNNELS");
 		var selections=$table.bootstrapTable("getSelections");
-		var params={"tunnels": selections,"onclose":"clearSelections",
+		var params={"tunnels": selections,"onclose":"clearSelectionsTunnels",
 						"buttons":[{"id":"deltunnelbtn","class":"btn btn-primary","txt":"Borrar","callback":"delTunnelAction"}] };
 		openModalTemplate('deltunnelconfirm','Está vostede seguro?',"_modalbody_deltunnel",params);
 		$(event.target).prop('disabled',true);
@@ -149,7 +149,7 @@
 
 	function wakeUp() {
 		/*var params={"computers": __select__content["computers"],"rol":"{{user.rol.rol}}",
-						"buttons":[{"id":"wakeupbtn","class":"btn btn-primary","txt":"Encender","callback":"wake"}] };
+						"buttons":[{"id":"computerbtn","class":"btn btn-primary","txt":"Encender","callback":"wake"}] };
 		{% if user.rol.rol == "ADMIN" %}
 			params["navfunction"]="yes";
 		{% endif %}*/
@@ -157,8 +157,8 @@
 		callServer("/status/computers","",function(data) {
 			$("#alertbody").alert("close");
 			__select__content["computers"]=data;
-			var params={"id":"wakeup","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}"};
-			openModalTemplate('wakeup','Encendido de Equipos',"_modalbody_computers",params);
+			var params={"id":"computers","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}"};
+			openModalTemplate('computers','Encendido de Equipos',"_modalbody_computers",params);
 		});
 	}
 
@@ -198,6 +198,7 @@ _twig_templates["_modalbody_newcomputer"]="templates/modals/newcomputer.body.htm
 _twig_templates["_modalbody_newservice"]="templates/modals/newservice.body.html.twig";
 _twig_templates["_modalbody_ip"]="templates/modals/computers.body.html.twig";
 _twig_templates["_modalbody_deltunnel"]="templates/modals/deltunnelconfirm.body.html.twig";
+_twig_templates["_modalbody_delcomputer"]="templates/modals/delcomputerconfirm.body.html.twig";
 _twig_templates["_select_template"]="templates/widgets/select.html.twig";
 </script>
 {% endblock %}
