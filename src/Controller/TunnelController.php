@@ -78,7 +78,7 @@ class TunnelController extends FacadeController {
 				$t=$u_tunnel->getTunnel();
 				$id=$t->getId();
 				if (in_array($id,$list)) {
-					if (!$t->getStarted()) {
+					if (!$u_tunnel->isRunning()) {
 						$user->removeTunnel($u_tunnel);
 						$t->removeUser($u_tunnel);
 						$l=$t->getUsers();
