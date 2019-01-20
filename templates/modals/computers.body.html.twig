@@ -8,7 +8,7 @@
 {% if rol == "ADMIN" %}
 	{% include "widgets/table.html.twig" with 
 		{	"idtable":"__table__"~id,
-			"ajaxurl":"/status/computers",
+			"ajaxurl":"/list/computers.json",
 			"commandlist":"l_computers",
 			"checkbox":true,
 			"select":id,
@@ -24,7 +24,7 @@
 				{"field":"domain","title":"Nombre Equipo (FQDN)","width":"23%"},
 				{"field":"ip","title":"Dirección IP","width":"12%"},
 				{"field":"mac","title":"Dirección MAC","width":"19%"},
-				{"field":"running","formatter":"statusFormatterComputer","title":"Estado","width":"78px"},
+				{"field":"running","formatter":"statusFormatterComputerButton","title":"Estado","width":"78px"},
 			],
 			"data": data
 		}
@@ -32,7 +32,7 @@
 {% else %}
 	{% include "widgets/table.html.twig" with 
 		{	"idtable":"__table__"~id,
-			"ajaxurl":"/status/computers",
+			"ajaxurl":"/list/computers.json",
 			"commandlist":"l_computers",
 			"checkbox":true,
 			"select":id,
@@ -43,7 +43,7 @@
 				{"field":"domain","title":"Nombre Equipo (FQDN)","width":"23%"},
 				{"field":"ip","title":"Dirección IP","width":"12%"},
 				{"field":"mac","title":"Dirección MAC","width":"19%"},
-				{"field":"running","formatter":"statusFormatterComputer","title":"Estado","width":"78px"},
+				{"field":"running","formatter":"statusFormatterComputerButton","title":"Estado","width":"78px"},
 			],
 			"data": data
 		}
@@ -150,24 +150,35 @@
 			$(sw).prop("checked",true);
 			return;
 		}
-		var $table=$("#__table__{{id}}");
+		/*var $table=$("#__table__{{id}}");
 		var row=$(sw).closest("#__table__{{id}} tr");
-		var idx=$(row).data("index");
+		var idx=$(row).data("index"); */
 		try {
-			var data=JSON.parse($table.data("data"));
-			if ((data.rows[idx].mac=="") && (running)) {
+			/*var data=JSON.parse($table.data("data"));*/
+			var mac=document.getElementById("computer_mac").value;
+			// if ((data.rows[idx].mac=="") && (running)) {
+			if ((mac=="") && (running)) {
 				messageAlert("Imposible encender equipo, no disponemos de su dirección MAC",WARNING,3000);
 				$(sw).prop("checked",false);
 				return;
 			}
 			$(sw).parent().addClass("onoffswitch-running");
-			messageAlert("Examinando estado dos equipos...",INFO);
-			callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
+			messageAlert("Encendendo equipo...",INFO);
+			//callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
+			callServer("/change/switchcomputer","id="+id+"&status="+running,function(data) {
+				$("#alertbody").alert("close");
+			});
 		} catch(e) {
 			messageAlert(e,ERROR);
 		}
 	}
 
+	function statusFormatterComputerButton(value,row,index,field) {
+		var html="<button type=\"button\" onclick=\"verifyComputer('"+row.domain+" ["+row.ip+"]')\" class=\"btn btn-info\">Verificar</button>";
+		return html;
+	}
+
+/*
 	function statusFormatterComputer(value,row,index,field) { 
 		var html="{{ include("/templates/widgets/switch.html.twig",{"id":"%rowid%", "name": "onoffcomputer", "checked":"%status%","callback":"switchComputer"}) }}";
 
@@ -180,4 +191,5 @@
 		var result = $('<textarea />').html(html).text();
 		return result;
 	}
+*/
 </script>

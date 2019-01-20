@@ -32,9 +32,6 @@
 #define REQUEST  "http://%s/service?apikey=api-key-tunnel"
 // #define RESPONSE "http://sshtunnel.xavitag.es/service?do=update&apikey=api-key-tunnel"
 
-extern int isAlive(const char *ip);
-extern int switchOn(char *ifname,const char *mac);
-
 void doWork(int skd,struct sockaddr_in *addr);
 void notify_end(int signal);
 void waitRequests(int port);
@@ -227,6 +224,7 @@ void testRenew(void) {
 			read(fl,&last,sizeof(time_t));
 			close(fl);
 		} 
+		printf("-> CHECKING AT: %s\n",ctime(&now));
 		if ((now - last) > TIMERENEW) renewData();
 		sleep(TIMERENEW); 
 	}
@@ -270,8 +268,8 @@ void waitRequests(int port)
 	notificator=fork();
 	switch(notificator) {
 		case 0: 
-			testRenew(); 
 			signal(SIGCHLD, notify_end); 
+			testRenew(); 
 			exit(0); 
 		case -1: 
 			printf("Error forking %s\n",strerror(errno));
@@ -360,6 +358,7 @@ void main(int argc,char *argv[]) {
 		close(STDIN_FILENO);
 
 		t=newTunnel(0,63000,1777,"127.0.0.1");
+		t->status=1;
 		running=getStatusTunnel(t);
 		if (!running) turnOnTunnel(t);
 

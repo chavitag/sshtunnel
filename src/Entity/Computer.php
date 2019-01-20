@@ -6,9 +6,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\ComputerRepository")
+ * UniqueEntity(fields="ip", message="A IP xa existe.")
+ * UniqueEntity(fields="mac", message="A MAC xa existe.")
  */
 class Computer
 {
@@ -25,7 +29,7 @@ class Computer
     private $domainname;
 
     /**
-     * @ORM\Column(type="string", length=15)
+     * @ORM\Column(type="string", length=15, unique=true)
      */
     private $ip;
 
@@ -35,7 +39,7 @@ class Computer
     private $description;
 
     /**
-     * @ORM\Column(type="string", length=17, nullable=true)
+     * @ORM\Column(type="string", length=17, nullable=true, unique=true)
      */
     private $mac;
 
@@ -106,11 +110,13 @@ class Computer
 
     public function getMac(): ?string
     {
+		  if ($this->mac==null) return "";
         return $this->mac;
     }
 
     public function setMac(?string $mac): self
     {
+		  if ($mac=="") $this->mac=null;
         $this->mac = $mac;
 
         return $this;

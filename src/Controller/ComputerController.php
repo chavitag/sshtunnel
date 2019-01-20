@@ -107,10 +107,111 @@ class ComputerController extends FacadeController {
 	}
 
 	/** 
-	* @Route("/change/computer", name="c_computer")
-	* @Route("/status/computers", name="st_computer")
+	* @Route("/change/switchcomputer", name="sw_computer")
 	*/
-	public function verifyComputerAction(Request $request=null) {
+	public function switchComputerAction(Request $request) {
+		$socket=null;
+		try {
+			if ($request!=null) {
+				// Verificar si queremos encenderlo....
+				$computerid=$request->request->get("id");
+				$data=array();
+				if ($computerid!=null) {
+					$computerstatus=$request->request->get("status");
+					$data["ok"]="true";
+					$data["action"]=array();
+					$data["action"]["command"]="change_computer_status";
+					$data["action"]["id"]=intval($computerid);
+					$data["action"]["status"]=($computerstatus=="true");
+
+					$entityManager = $this->getDoctrine()->getManager();
+					$computer=$entityManager->find("App\Entity\Computer",$computerid);
+
+					//$data["computers"][]=JSON::encode($computer,array("users","roles","tunnels"));
+					$data["tunnels"]=array();
+					$data["computers"][0]["id"]=$computerid;
+					$data["computers"][0]["ip"]=$computer->getIp();
+					$data["computers"][0]["domainname"]=$computer->getDomainname();
+					$data["computers"][0]["description"]=$computer->getDescription();
+					$data["computers"][0]["mac"]=$computer->getMac();
+					$data["computers"][0]["status"]=null;
+					$data["computers"][0]["startTime"]=0;
+
+					$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
+					$socket->send(json_encode($data));
+					$info=$socket->receive(65535);
+
+					$data=json_decode($info);
+					if ($data->ok) {
+						$doctrine=$this->getDoctrine();
+						foreach($data->computers as $c) {
+							$computer=Computer::getInstance($doctrine,$c->id);
+							$computer->setStatus($c->status);
+							$computer->setStartTime($c->startTime);
+						}
+					}
+					return $this->listComputersAction();
+				}
+			}
+			throw new Exception("Equipo descoñecido");
+		} catch(Exception $e) {
+			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
+		} finally {
+			if ($socket!=null) $socket->close();
+		}
+	}
+
+	/** 
+	* @Route("/status/checkcomputer", name="ck_computer")
+	*/
+	public function checkComputerAction(Request $request) {
+		$socket=null;
+		try {
+			$doctrine=$this->getDoctrine();
+			$data=$this->info(false);
+			if ($request!=null) {
+				// Verificar si queremos encenderlo....
+				$computerid=$request->request->get("id");
+				if ($computerid!=null) {
+					$computerstatus=$request->request->get("status");
+					$data["action"]=array();
+					$data["action"]["command"]="change_computer_status";
+					$data["action"]["id"]=intval($computerid);
+					$data["action"]["status"]=($computerstatus=="true");
+				}
+
+				$computer=$request->request->get("computer");
+				if ($computer!=null) {
+					preg_match('/\s\[(.*)\]$/',$computer,$match);
+					$host=$doctrine->getRepository(Computer::class)->findOneBy(array("ip"=>$match[1]));
+					$data["computers"]=array($host);
+					$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
+					$socket->send(JSON::encode($data,array("users","roles","tunnels")));
+					$info=$socket->receive(65535);
+
+					$data=json_decode($info);
+
+					$status=null;
+					if ($data->ok) {
+						$status=array("total"=>1,"rows"=>array(array("id"=>$host->getId(),"domain"=>$host->getDomainname(),"ip"=>$host->getIp(),"description"=>$host->getDescription(),"mac"=>$host->getMac(),"running"=>$data->computers[0]->status,"startTime"=>$data->computers[0]->startTime)));
+						return $this->json($status);
+					} 
+					throw new Exception("Non se atopa $computer");
+				}
+			} 
+			throw new Exception("Equipo descoñecido");
+		} catch(\Exception $e) {
+			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
+		} finally {
+			if ($socket!=null) $socket->close();
+		}
+	}
+
+	/** 
+	* Route("/change/computer", name="c_computer")
+	* Route("/status/computers", name="st_computer")
+	*/
+	/*public function verifyComputerAction(Request $request=null) {
 		$socket=null;
 		try {
 			$data=$this->info(true);
@@ -144,7 +245,7 @@ class ComputerController extends FacadeController {
 		} finally {
 			if ($socket!=null) $socket->close();
 		}
-	}
+	}*/
 
 	/** Create a new Computer Object by submitted data
 	*/

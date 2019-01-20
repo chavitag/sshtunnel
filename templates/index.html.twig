@@ -69,8 +69,9 @@
 				{"field":"description","title":"Descripción","sortable":"true","width":"30%","filterControl":"input"},
 				{"field":"destination","title":"Destiño","sortable":"true","width":"25%","filterControl":"select","filterData":'var:{"0":"a","1":"b","2":"c"}'},
 				{"field":"dport","title":"Porto","sortable":"true","filterControl":"xxx"},
-				{"field":"url","title":"URL de Conexión","width":"25%"},
-				{"field":"status","formatter":"statusFormatterTunnel","title":"Estado","width":"96px"},
+				{"field":"url","title":"URL de Conexión","width":"18%"},
+				{"field":"status","formatter":"statusFormatterTunnel","title":"Túnel","width":"80px"},
+				{"field":"computer","formatter":"statusComputerFormatterTunnel","title":"Equipo","width":"80px"},
 			],
 			"data": tunnels
 		}
@@ -153,8 +154,9 @@
 		{% if user.rol.rol == "ADMIN" %}
 			params["navfunction"]="yes";
 		{% endif %}*/
-		messageAlert("Examinando estado dos equipos...",INFO);
-		callServer("/status/computers","",function(data) {
+		//messageAlert("Examinando estado do equipo...",INFO);
+		//callServer("/status/computers","",function(data) {
+		callServer("/list/computers.json","",function(data) {
 			$("#alertbody").alert("close");
 			__select__content["computers"]=data;
 			var params={"id":"computers","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}"};
@@ -163,26 +165,42 @@
 	}
 
 	function refreshComputers(callback) {
-		messageAlert("Examinando estado dos equipos...",INFO);
-		callServer("/status/computers","",function(data) {
+		//messageAlert("Examinando estado do equipo...",INFO);
+		callServer("/list/computers.json","",function(data) {
 			$("#alertbody").alert("close");
 			__select__content["computers"]=data;
 			callback(data);
 		});
 	}
 
-	function statusFormatterTunnel(value,row,index,field) {
+	function statusFormatterTunnel(value,row,index,field) { 
 		var html="{{ include("widgets/switch.html.twig",{"id":"%rowid%", "name": "onofftunnel", "checked":"%status%","callback":"setTunnel"}) | escape("js")}}";
 		if (value) html=html.replace(/%status%/g,"checked");
 		else 		  html=html.replace(/%status%/g,"");
 		return html.replace(/%rowid%/g,row.id);
 	}
 
+	function statusComputerFormatterTunnel(value,row,index,field) {
+		var html="<button type=\"button\" onclick=\"verifyComputer('"+row.destination+"')\" class=\"btn btn-info\">Verificar</button>";
+		return html;
+	}
+
+	function verifyComputer(computer) {
+		messageAlert("Examinando estado do equipo...",INFO);
+		callServer("/status/checkcomputer","computer="+computer,function(data) {
+			var computer=data.rows[0];
+			if (computer.running == 2) computer.checked="checked";
+			computer.modalsize="modal-lg";
+			$("#alertbody").alert("close");
+			openModalTemplate('statuscomputer','Estado do Equipo',"_modalbody_statuscomputer",computer);
+		});
+	}
+
 	// Save Tunnel
 	//
 	function saveTunnel() {
 		var data=$("#dataAddTunnelForm").serializeJSON();
-		$("#_modal_service").modal('hide'); alert(JSON.stringify(data));
+		$("#_modal_service").modal('hide'); 
 		callServer("/save/tunnel","params="+JSON.stringify(data),reloadTable,"TABLETUNNELS");
 		$('#dataAddTunnelForm')[0].reset();
 	}
@@ -199,7 +217,9 @@ _twig_templates["_modalbody_newservice"]="templates/modals/newservice.body.html.
 _twig_templates["_modalbody_ip"]="templates/modals/computers.body.html.twig";
 _twig_templates["_modalbody_deltunnel"]="templates/modals/deltunnelconfirm.body.html.twig";
 _twig_templates["_modalbody_delcomputer"]="templates/modals/delcomputerconfirm.body.html.twig";
+_twig_templates["_modalbody_statuscomputer"]="templates/modals/statuscomputer.body.html.twig";
 _twig_templates["_select_template"]="templates/widgets/select.html.twig";
+
 </script>
 {% endblock %}
 

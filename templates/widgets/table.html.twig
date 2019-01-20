@@ -146,9 +146,9 @@
 <script id="maketable_{{idtable}}">
 	function initTable_{{idtable}}() {
 		var $table=$("#{{idtable}}");
+		_table_formatters_["{{idtable}}"]={};
 		{% for col in columns %}
 				{% if col.formatter is defined %} 
-					_table_formatters_["{{idtable}}"]={};
 					_table_formatters_["{{idtable}}"]["{{col.field}}"]="{{col.formatter}}";
 				{% endif %}
 		{% endfor %}
