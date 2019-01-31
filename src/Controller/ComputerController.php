@@ -24,8 +24,28 @@ class ComputerController extends FacadeController {
 	/**
 	*	@Route("/list/computers.json",name="l_computers")
 	*/
-	public function listComputersAction() {
+	public function listComputersAction(Request $request=null) {
 		$data=Computer::getComputers($this->getUser());
+		$order=null;
+		$field=null;
+
+		// Order by criteria....
+		$params=$this->getOrder();
+		
+		if ($request!=null) {
+			$field=$request->get("field");
+			$order=$request->get("order");
+		}
+
+		if (($order==null)&&($params[1]!=null)) $order=$params[1];
+		if (($field==null)&&($params[0]!=null)) $field=$params[0];
+		if ($field==null) $field="description";
+		if ($order==null) $order="asc";
+
+		$params=array($field,$order);
+		$this->setOrder($params);
+
+		$data["rows"]=$this->dataSort($data["rows"],$field,$order);
 		return $this->json($data);
 	}
 
@@ -81,7 +101,7 @@ class ComputerController extends FacadeController {
 		} catch (\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		}
-		return $this->verifyComputerAction();
+		return $this->listComputersAction();
 	}
 
 	/** 
@@ -89,19 +109,26 @@ class ComputerController extends FacadeController {
 	*/
 	public function delComputerAction(Request $request) {
 		try {
+			$command=array("ok"=>true);
+			$command["action"]=array("command"=>"delete_computers","ids"=>array());
+			$computers=array();
+
 			$entityManager = $this->getDoctrine()->getManager();
 
 			$list=json_decode($request->request->get("params"));
 			foreach($list as $idcomputer) {
 				$computer=$entityManager->find("App\Entity\Computer",$idcomputer);
+				$command["action"]["ids"][]=$computer->getId();
+				$computers[]=$computer;
 				$entityManager->remove($computer);
 			}
+			$this->computerCommand($computers,$command);
+
 			$entityManager->flush();
-			return $this->verifyComputerAction();
+			return $this->listComputersAction();
 		} catch(ForeignKeyConstraintViolationException $e) {
 			return $this->json(array("ok"=>"false","msg"=>"Existen registros relacionados","code"=>$e->getCode()));
 		} catch(\Exception $e) {
-			//throw new \Exception($e->getMessage());
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		}
 	}
@@ -110,7 +137,7 @@ class ComputerController extends FacadeController {
 	* @Route("/change/switchcomputer", name="sw_computer")
 	*/
 	public function switchComputerAction(Request $request) {
-		$socket=null;
+		//$socket=null;
 		try {
 			if ($request!=null) {
 				// Verificar si queremos encenderlo....
@@ -118,46 +145,20 @@ class ComputerController extends FacadeController {
 				$data=array();
 				if ($computerid!=null) {
 					$computerstatus=$request->request->get("status");
-					$data["ok"]="true";
-					$data["action"]=array();
-					$data["action"]["command"]="change_computer_status";
-					$data["action"]["id"]=intval($computerid);
-					$data["action"]["status"]=($computerstatus=="true");
 
+					$command=array("ok"=>true);
+					$command["action"]=array("command"=>"change_computer_status","id"=>intval($computerid),"status"=>($computerstatus=="true"));
+					
 					$entityManager = $this->getDoctrine()->getManager();
 					$computer=$entityManager->find("App\Entity\Computer",$computerid);
+					if ($computer!=null) $this->computerCommand(array($computer),$command);
 
-					//$data["computers"][]=JSON::encode($computer,array("users","roles","tunnels"));
-					$data["tunnels"]=array();
-					$data["computers"][0]["id"]=$computerid;
-					$data["computers"][0]["ip"]=$computer->getIp();
-					$data["computers"][0]["domainname"]=$computer->getDomainname();
-					$data["computers"][0]["description"]=$computer->getDescription();
-					$data["computers"][0]["mac"]=$computer->getMac();
-					$data["computers"][0]["status"]=null;
-					$data["computers"][0]["startTime"]=0;
-
-					$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
-					$socket->send(json_encode($data));
-					$info=$socket->receive(65535);
-
-					$data=json_decode($info);
-					if ($data->ok) {
-						$doctrine=$this->getDoctrine();
-						foreach($data->computers as $c) {
-							$computer=Computer::getInstance($doctrine,$c->id);
-							$computer->setStatus($c->status);
-							$computer->setStartTime($c->startTime);
-						}
-					}
 					return $this->listComputersAction();
 				}
 			}
 			throw new Exception("Equipo descoñecido");
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
-		} finally {
-			if ($socket!=null) $socket->close();
 		}
 	}
 
@@ -168,35 +169,34 @@ class ComputerController extends FacadeController {
 		$socket=null;
 		try {
 			$doctrine=$this->getDoctrine();
-			$data=$this->info(false);
-			if ($request!=null) {
-				// Verificar si queremos encenderlo....
-				$computerid=$request->request->get("id");
-				if ($computerid!=null) {
-					$computerstatus=$request->request->get("status");
-					$data["action"]=array();
-					$data["action"]["command"]="change_computer_status";
-					$data["action"]["id"]=intval($computerid);
-					$data["action"]["status"]=($computerstatus=="true");
-				}
+			$data=array("ok"=>true);
 
+			if ($request!=null) {
 				$computer=$request->request->get("computer");
 				if ($computer!=null) {
 					preg_match('/\s\[(.*)\]$/',$computer,$match);
 					$host=$doctrine->getRepository(Computer::class)->findOneBy(array("ip"=>$match[1]));
+					$host->setScan(true);
 					$data["computers"]=array($host);
 					$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
 					$socket->send(JSON::encode($data,array("users","roles","tunnels")));
 					$info=$socket->receive(65535);
+					$socket->close();
 
 					$data=json_decode($info);
 
 					$status=null;
 					if ($data->ok) {
-						$status=array("total"=>1,"rows"=>array(array("id"=>$host->getId(),"domain"=>$host->getDomainname(),"ip"=>$host->getIp(),"description"=>$host->getDescription(),"mac"=>$host->getMac(),"running"=>$data->computers[0]->status,"startTime"=>$data->computers[0]->startTime)));
-						return $this->json($status);
+						$idx=0;
+						while($idx<count($data->computers)) {
+							if ($data->computers[$idx]->id == $host->getId()) {
+								$status=array("total"=>1,"rows"=>array(array("id"=>$host->getId(),"domain"=>$host->getDomainname(),"ip"=>$host->getIp(),"description"=>$host->getDescription(),"mac"=>$host->getMac(),"running"=>$data->computers[$idx]->status,"startTime"=>$data->computers[$idx]->startTime)));
+								return $this->json($status);
+							}
+							$idx++;
+						}
 					} 
-					throw new Exception("Non se atopa $computer");
+					throw new \Exception("Non se atopa $computer");
 				}
 			} 
 			throw new Exception("Equipo descoñecido");
@@ -208,26 +208,20 @@ class ComputerController extends FacadeController {
 	}
 
 	/** 
-	* Route("/change/computer", name="c_computer")
-	* Route("/status/computers", name="st_computer")
+	* @Route("/status/computers", name="st_computer")
 	*/
-	/*public function verifyComputerAction(Request $request=null) {
+	public function verifyComputerAction(Request $request=null) {
+		if ($request->get("onlysort")==true) return $this->listComputersAction($request);
 		$socket=null;
 		try {
 			$data=$this->info(true);
-			if ($request!=null) {
-				$computerid=$request->request->get("id");
-				if ($computerid!=null) {
-					$computerstatus=$request->request->get("status");
-					$data["action"]=array();
-					$data["action"]["command"]="change_computer_status";
-					$data["action"]["id"]=intval($computerid);
-					$data["action"]["status"]=($computerstatus=="true");
-				}
+			foreach($data["computers"] as $computer) {
+				$computer->setScan(true);
 			}
 
+			$info=JSON::encode($data,array("users","roles","tunnels"));
 			$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
-			$socket->send(JSON::encode($data,array("users","roles","tunnels")));
+			$socket->send($info);
 			$info=$socket->receive(65535);
 			$data=json_decode($info);
 
@@ -235,17 +229,63 @@ class ComputerController extends FacadeController {
 				$doctrine=$this->getDoctrine();
 				foreach($data->computers as $c) {
 					$computer=Computer::getInstance($doctrine,$c->id);
-					$computer->setStatus($c->status);
-					$computer->setStartTime($c->startTime);
+					if ($computer!=null) {
+						$computer->setStatus($c->status);
+						$computer->setStartTime($c->startTime); 
+						$computer->setScan(false);
+						$computer->setLastScan($c->lastscan);
+					} else throw new \Exception("O Equipo ".$c->ip." (".$c->id.") non existe ");
 				}
 			}
-			return $this->listComputersAction();
+			return $this->listComputersAction($request);
 		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		} finally {
 			if ($socket!=null) $socket->close();
 		}
-	}*/
+	}
+
+	/**
+			$command=array("command"=>"change_computer_status","id"=>$computer->id,"status"=>true)
+	*/
+	private function computerCommand($computers,$command) {
+		$socket=null;
+		try {
+			$command["tunnels"]=array();
+			$command["computers"]=array();
+			foreach($computers as $idx=>$computer) {
+				$command["computers"][$idx]["id"]=$computer->getId();
+				$command["computers"][$idx]["ip"]=$computer->getIp();
+				$command["computers"][$idx]["domainname"]=$computer->getDomainname();
+				$command["computers"][$idx]["description"]=$computer->getDescription();
+				$command["computers"][$idx]["mac"]=$computer->getMac();
+				$command["computers"][$idx]["status"]=null;
+				$command["computers"][$idx]["startTime"]=0;
+				$command["computers"][$idx]["scan"]=0;
+				$command["computers"][$idx]["lastscan"]=0;
+			}
+
+			$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
+			$socket->send(json_encode($command));
+			$info=$socket->receive(65535);
+			$socket->close();
+
+			$data=json_decode($info);
+			if ($data->ok) {
+				$doctrine=$this->getDoctrine();
+				foreach($data->computers as $c) {
+					$computer=Computer::getInstance($doctrine,$c->id);
+					if ($computer!=null) {
+						$computer->setStatus($c->status);
+						$computer->setStartTime($c->startTime);
+					} else throw new \Exception("O Equipo ".$c->ip." (".$c->id.") non existe ");
+				}
+			} else throw new \Exception($data->msg);
+		} finally {
+			if ($socket!=null) $socket->close();
+		}
+	}
+
 
 	/** Create a new Computer Object by submitted data
 	*/

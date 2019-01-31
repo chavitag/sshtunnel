@@ -16,11 +16,20 @@ function renderTemplate(namet,jsondata,callback,param) {
 	var rjson=jsondata;
 	if (callback==undefined) {
 		mode=false;
-		callback=_fnc_null;
+		// callback=_fnc_null;
 	}
 	if (_twig_templates[namet]==undefined) {
 		throw "La plantilla "+namet+" no existe";
 	}
+
+	var t=twig({ref:namet});
+	if (t!=null) _twig_tmpl[namet]=t;
+/*	if ((t!=null)&&(_twig_tmpl==undefined)) {
+		alert(namet+" Ya definida!!!!");
+		_twig_tmpl[namet]=t;
+	}
+*/
+
 	if (_twig_tmpl[namet]==undefined) {
 		_twig_tmpl[namet]=twig({
 			base: 'templates',
@@ -44,7 +53,8 @@ function renderTemplate(namet,jsondata,callback,param) {
 				}
 			},
 		});
-	} 
+	}
+
 	if (!mode) {
 		/*if (error!=null) {
 			//Twig.cache();
@@ -56,18 +66,20 @@ function renderTemplate(namet,jsondata,callback,param) {
 		var t=twig({ref:namet});
 		if (t==null) {
 			_twig_tmpl[namet]=null;
+				//delete _twig_tmpl[namet];
 			setTimeout(function() { document.location='/'; },1000);
 			throw "No se pudo cargar la plantilla "+namet;
 		}
-		else 			 return twig({ref: namet}).render(rjson);
+		else 	return t.render(rjson);
 	} else {
 		if (error!=null) {
 			//Twig.cache();
 			_twig_tmpl[namet]=null;
+				//delete _twig_tmpl[namet];
 			setTimeout(function() { document.location='/'; },1000);
 			throw error;
 		}
-		callback(_twig_tmpl[namet].render(rjson),param);
+		if (callback!=undefined) callback(_twig_tmpl[namet].render(rjson),param);
 	}
 	return null;
 } 

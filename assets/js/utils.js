@@ -11,6 +11,8 @@ $.fn.serializeJSON=function() {
 function callServer(controller,query,callback,params,type,context) {
 	if ((query===null)||(query=="null")) query="isajax=true";
 	else query+="&isajax=true";
+
+alert("Querying...."+query);
 	$.ajax({
 		url: controller,
 		context: context,

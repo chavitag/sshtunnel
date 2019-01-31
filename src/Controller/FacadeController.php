@@ -6,15 +6,16 @@ use App\Exceptions\FacadeException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
 use App\Entity\UserTunnels;
 use App\Entity\Tunnel;
 use App\Entity\Computer;
 use App\Utils\JSON;
 use App\Utils\Socket;
 
-/*define("SSHGATEWAY","shuttle.iesrodeira.com");
-define("COMMIP","shuttle.iesrodeira.com");
-define("COMMPORT",63000); */
+/*SSHGATEWAY="sshtunnel.iesrodeira.com"
+COMMIP="10.0.3.91"
+COMMPORT="63000" */
 
 class FacadeController extends Controller {
 	private $apikey;
@@ -83,7 +84,7 @@ class FacadeController extends Controller {
 	*		do=infoservice
 	*/
 	protected function infoService(Request $request=null) {
-		$data=$this->info();
+		$data=$this->info(false,true);
 		return JSON::makeResponse(JSON::encode($data,array("users","roles","tunnels"))); //,array("users","rol")));
 	}
 
@@ -91,40 +92,89 @@ class FacadeController extends Controller {
 	/**---------------------------------------------------
 	-------------> Auxiliar Functions
 	----------------------------------------------------**/
-	protected function info($computers=false) {
+
+	protected function sortfunction($sortby,$orderby) {
+		return function($objectA,$objectB) use ($sortby,$orderby) {
+			$ret=$this->compareTo($objectA,$objectB,$sortby);
+			if ($orderby=="desc") $ret=-$ret;
+			return $ret;
+		};
+	}
+
+	protected function dataSort($info,$sortby,$orderby) {
+		if (usort($info,$this->sortfunction($sortby,$orderby))) return $info;
+		return null;
+	}
+
+	protected function getOrder() {
+		$this->session = new Session();
+		$order=$this->session->get(get_class($this)."_order",null);
+		return $order;
+	}
+
+	protected function setOrder(array $order) {
+		$this->session = new Session();
+		$this->session->set(get_class($this)."_order",$order);
+	}
+
+	protected function compareTo($dataA,$dataB,$field) {
+		if ($dataA[$field] > $dataB[$field]) return 1;
+		else if ($dataA[$field]<  $dataB[$field]) return -1;
+		return 0;
+	}
+
+	protected function info($computers=false,$all=true) {
 		$doctrine=$this->getDoctrine();
 		$data=array("ok"=>true);
-		$data["tunnels"]=$doctrine->getRepository(Tunnel::class)->findAll();
-		if ($computers) $data["computers"]=$doctrine->getRepository(Computer::class)->findAll();
+		if ($all) {
+			$data["tunnels"]=$doctrine->getRepository(Tunnel::class)->findAll();
+			if ($computers) $data["computers"]=$doctrine->getRepository(Computer::class)->findAll();
+		} else {
+			$user=$this->getUser();
+			$usertunnels=$user->getTunnels();
+			foreach($usertunnels as $ut) {
+				$data["tunnels"][]=$ut->getTunnel();
+			}
+			if ($computers) $data["computers"]=$user->getRol()->getComputers();
+		}
 		return $data;
 	}
 
-	protected function update($action=null,$computers=false) {
+	protected function update($action=null,$computers=false,$all=false) {
 			$socket=null;
 			$doctrine=$this->getDoctrine();
 			$entityManager=$doctrine->getManager();
+			
 
 			try {
-				$data=$this->info($computers);
-				if ($action!=null) $data["action"]=$action;
+				$data=$this->info($computers,$all);
+				if (($action!=null)&&($action!="")) $data["action"]=$action;
 				$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
 				$socket->send(JSON::encode($data,array("users","roles","tunnels")));
-				$data=json_decode($socket->receive());
-				foreach($data->tunnels as $t) {
-					$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$t->id);
-					if ($tun!=null) {
-						if (!$t->started) $tun->setRunning($t->started);
-						$entityManager->persist($tun);
+				$result=$socket->receive(655360);
+				$data=json_decode($result);
+				if ($data===NULL) throw new \Exception("Error decodificando respuesta [$result]");
+				$socket->close();
+				if ($data->ok) {
+					if ($this->getUser()!=null) {
+						foreach($data->tunnels as $t) {
+							$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$t->id);
+							if ($tun!=null) {
+								if (!$t->started) $tun->setRunning($t->started);
+								$tun->getTunnel()->setMonitor($t->monitor);
+								$entityManager->persist($tun);
+							}
+						}
 					}
-				}
-				if ($computers) {
-					foreach($data->computers as $c) {
-						$com=Computer::getInstance($doctrine,$c->id);
-						$com->setStatus($c->status);
-						//$entityManager->persist($com);
+					if ($computers) {
+						foreach($data->computers as $c) {
+							$com=Computer::getInstance($doctrine,$c->id);
+							$com->setStatus($c->status);
+							//$entityManager->persist($com);
+						}
 					}
-				}
-				$entityManager->flush();
+					$entityManager->flush();
+				} else throw new \Exception($data->msg);
 			} finally {
 				if ($socket!=null) $socket->close();
 			}

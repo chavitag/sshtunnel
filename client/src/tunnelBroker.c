@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/file.h>
+#include <syslog.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -39,7 +40,6 @@ void testRenew(void);
 void renewData(void);
 char *process(char *data);
 
-int __veces=0;
 char __request[256];
 char __bufrcv[1000000];
 char __bufsnd[1000000];
@@ -68,19 +68,21 @@ void processTunnels(json_object *jstunnels) {
 		json_object_object_get_ex(el,"id",&obj);
 		id=json_object_get_int(obj);
 
-		json_object_object_get_ex(el,"sourceport",&obj);
-		sport=json_object_get_int(obj);
+		t=getTunnel(id);
+		if (t==NULL) {
+			json_object_object_get_ex(el,"sourceport",&obj);
+			sport=json_object_get_int(obj);
 
-		json_object_object_get_ex(el,"destport",&obj);
-		dport=json_object_get_int(obj);
+			json_object_object_get_ex(el,"destport",&obj);
+			dport=json_object_get_int(obj);
 
-		json_object_object_get_ex(el,"ip",&obj);
-		ip=json_object_get_string(obj);
+			json_object_object_get_ex(el,"ip",&obj);
+			ip=json_object_get_string(obj);
 
+			t=newTunnel(id,sport,dport,ip);
+		}
 		json_object_object_get_ex(el,"started",&obj);
 		status=json_object_get_boolean(obj);
-
-		t=newTunnel(id,sport,dport,ip);
 		running=getStatusTunnel(t);
 
 		if (!running && status) turnOnTunnel(t);
@@ -124,8 +126,15 @@ void processComputers(json_object *jscomputers) {
 			startTime=json_object_get_int(obj);
 		else 
 			startTime=0;
-
-		c=newComputer(id,dn,ip,desc,mac,startTime);
+		c=getComputer(id);
+		if (c==NULL) c=newComputer(id,dn,ip,desc,mac,startTime);
+		else    {
+			strncpy(c->domainname,dn,127);
+			strncpy(c->ip,ip,15);
+			strncpy(c->description,desc,127);
+			strncpy(c->mac,mac,17);
+			c->startedTime=startTime;
+		}
 		getStatusComputer(c);
 	}
 }
@@ -184,8 +193,8 @@ char *process(char *data) {
 		json_object_object_get_ex(jobj, "tunnels",&jstunnels);
 		json_object_object_get_ex(jobj, "computers",&jscomputers);
 
-		if (jstunnels!=NULL) processTunnels(jstunnels);
 		if (jscomputers!=NULL) processComputers(jscomputers);
+		if (jstunnels!=NULL) processTunnels(jstunnels);
 		doCommand(jsaction);
 	}
 	return JSON_response();
@@ -213,20 +222,18 @@ void notify_end(int signal) {
 /** Renew info every TIMERENEW seconds
 */
 void testRenew(void) {
-	time_t now=time(NULL);
-	time_t last=0;
-	int fl;
+	Tunnel *t;
+	int running;
 
+	t=newTunnel(0,63000,1777,"127.0.0.1");
+	t->status=1;
+	running=getStatusTunnel(t);
+	if (!running) turnOnTunnel(t);
 	while(1) {
-		now=time(NULL);
-		fl=open("/tmp/lck.lck",O_RDONLY);
-		if (fl!=-1) {
-			read(fl,&last,sizeof(time_t));
-			close(fl);
-		} 
-		printf("-> CHECKING AT: %s\n",ctime(&now));
-		if ((now - last) > TIMERENEW) renewData();
+		renewData();
 		sleep(TIMERENEW); 
+		running=getStatusTunnel(t);
+		if (!running) turnOnTunnel(t);
 	}
 }
 
@@ -237,9 +244,10 @@ void renewData(void) {
 	json_object *jstunnels=NULL;
 	json_object *ok=NULL;
 
-	__veces++;
+	syslog(LOG_LOCAL7,"Refresh tunnels...");
 	info=http_request(__request,NULL,&size);
 	if (info!=NULL) {
+		syslog(LOG_LOCAL7,info);
 		jobj = json_tokener_parse(info);
 		if (json_object_object_get_ex(jobj,"ok",&ok) && json_object_get_boolean(ok)) {
 			json_object_object_get_ex(jobj, "tunnels",&jstunnels);
@@ -272,7 +280,7 @@ void waitRequests(int port)
 			testRenew(); 
 			exit(0); 
 		case -1: 
-			printf("Error forking %s\n",strerror(errno));
+			syslog(LOG_LOCAL7,"Error forking %s\n",strerror(errno));
 		  exit(0);
 	}
 
@@ -280,9 +288,7 @@ void waitRequests(int port)
 	if (sk!=-1) {
 		struct sockaddr_in addr;
 		struct hostent *he;
-		time_t now;
 		int skd;
-		int fl;
 
 		addr.sin_family=AF_INET;
 		addr.sin_port=htons(port);
@@ -298,16 +304,7 @@ void waitRequests(int port)
 							// Son: Do the work !!!
 							case 0: 
 								close(sk);
-								// One by one, please... register time of access...
-								fl=open("/tmp/lck.lck",O_WRONLY|O_CREAT,S_IWRITE|S_IREAD);
-								if (fl!=-1) {
-									doWork(skd,&addr);
-									flock(fl,LOCK_EX);
-									now=time(NULL);
-									write(fl,&now,sizeof(time_t));
-									close(fl);
-									flock(fl,LOCK_UN);
-								} 
+								doWork(skd,&addr);
 								close(skd);
 								exit(EXIT_SUCCESS);
 								break;
@@ -317,12 +314,12 @@ void waitRequests(int port)
 								close(skd);
 								break;
 						}
-					} else printf("ERROR !!!\n");
+					} else syslog(LOG_LOCAL7,"ERROR Acepting connection!!!\n");
 				}
 			}
-		} else printf("Can't bind address\n");
+		} else syslog(LOG_LOCAL7,"Can't bind address\n");
 		close(sk);
-	} else printf("Can't open socket\n");
+	} else syslog(LOG_LOCAL7,"Can't open socket\n");
 	kill(notificator,SIGKILL);
 }
 
@@ -331,8 +328,6 @@ void waitRequests(int port)
 void main(int argc,char *argv[]) {
 	pid_t pid, sid;
 	int logfile;
-	Tunnel *t;
-	int running;
 
 	if (argc<2) {
 		printf("tunnelBroker url\n");
@@ -340,32 +335,17 @@ void main(int argc,char *argv[]) {
 	}
 	snprintf(__request,sizeof(__request),REQUEST,argv[1]);
 	if ((pid=fork())==-1)  {
-         exit(EXIT_FAILURE); 	 
-  }
-  if (pid!=0) exit(EXIT_SUCCESS);
-  umask(0);
-  sid = setsid();
-  if (sid < 0) {
-	printf("Error setsid %s\n",strerror(errno));
-  	exit(EXIT_FAILURE);
-  }
-  logfile=open("/var/log/tunnel.log",O_RDWR|O_CREAT); 
-  if (logfile!=-1) {
-		close(STDOUT_FILENO);
-		close(STDERR_FILENO);
-		dup(logfile);
-		dup(logfile);
-		close(STDIN_FILENO);
-
-		t=newTunnel(0,63000,1777,"127.0.0.1");
-		t->status=1;
-		running=getStatusTunnel(t);
-		if (!running) turnOnTunnel(t);
-
-		waitRequests(PORT);
-		close(logfile);
-		exit(EXIT_SUCCESS);		    
+		exit(EXIT_FAILURE); 	 
 	}
-	printf("ERROR %s\n",strerror(errno));
-	exit(EXIT_FAILURE);
+	if (pid!=0) exit(EXIT_SUCCESS);
+	umask(0);
+	sid = setsid();
+	if (sid < 0) {
+		syslog(LOG_LOCAL7,"Error setsid %s\n",strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+	waitRequests(PORT);
+	exit(EXIT_SUCCESS);		    
 }

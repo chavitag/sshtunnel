@@ -64,6 +64,7 @@
 				{"id":"btn-delete","callback":"delTunnel","txt":"Borrar Túnel","class":"btn btn-danger", "status":"disabled", "icon":"fa fa-times" },
 				{"id":"btn-add","txt": "Novo Túnel","class":"btn btn-primary", "callback":"newTunnel", "icon":"fa fa-plus" },
 				{"id":"btn-wakeup","txt":"Encender Equipo","class":"btn btn-success","icon":"fa fa-desktop","callback":"wakeUp"},
+				{"id":"btn-showstatus","txt":"Comprobar Equipos","class":"btn btn-warning","icon":"fa fa-desktop","callback":"wakeUpAll"},
 			],
 			"columns": [
 				{"field":"description","title":"Descripción","sortable":"true","width":"30%","filterControl":"input"},
@@ -149,24 +150,27 @@
 	}
 
 	function wakeUp() {
-		/*var params={"computers": __select__content["computers"],"rol":"{{user.rol.rol}}",
-						"buttons":[{"id":"computerbtn","class":"btn btn-primary","txt":"Encender","callback":"wake"}] };
-		{% if user.rol.rol == "ADMIN" %}
-			params["navfunction"]="yes";
-		{% endif %}*/
-		//messageAlert("Examinando estado do equipo...",INFO);
-		//callServer("/status/computers","",function(data) {
 		callServer("/list/computers.json","",function(data) {
 			$("#alertbody").alert("close");
 			__select__content["computers"]=data;
-			var params={"id":"computers","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}"};
+			var params={"id":"computers","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}","switch":"off"};
+			openModalTemplate('computers','Encendido de Equipos',"_modalbody_computers",params);
+		});
+	}
+
+	function wakeUpAll() {
+		messageAlert("Examinando estado dos equipos...",INFO);
+		callServer("/status/computers","",function(data) {
+			$("#alertbody").alert("close");
+			__select__content["computers"]=data;
+			var params={"id":"computers","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}","switch":"on"};
 			openModalTemplate('computers','Encendido de Equipos',"_modalbody_computers",params);
 		});
 	}
 
 	function refreshComputers(callback) {
 		//messageAlert("Examinando estado do equipo...",INFO);
-		callServer("/list/computers.json","",function(data) {
+		callServer("/list/computers.json","order=asc",function(data) {
 			$("#alertbody").alert("close");
 			__select__content["computers"]=data;
 			callback(data);
@@ -188,11 +192,18 @@
 	function verifyComputer(computer) {
 		messageAlert("Examinando estado do equipo...",INFO);
 		callServer("/status/checkcomputer","computer="+computer,function(data) {
-			var computer=data.rows[0];
-			if (computer.running == 2) computer.checked="checked";
-			computer.modalsize="modal-lg";
+			var r_computer=data.rows[0];
+
+			if (r_computer.running != 0) {
+				r_computer.checked="checked";
+
+				if (r_computer.running==1) r_computer.runningclass="onoffswitch-running";
+				else if (r_computer.running==3) r_computer.runningclass="onoffswitch-stopping";
+			}
+
+			r_computer.modalsize="modal-lg";
 			$("#alertbody").alert("close");
-			openModalTemplate('statuscomputer','Estado do Equipo',"_modalbody_statuscomputer",computer);
+			openModalTemplate('statuscomputer','Estado do Equipo',"_modalbody_statuscomputer",r_computer);
 		});
 	}
 

@@ -57,12 +57,17 @@
 		var $table=$("#{{idtable}}"); 
 		$table.find(".bst-search-row").hide();
 		var status=$table.data("init");
+		query="{{commandlist}}"+"&order="+params.data.order;
+		if (params.data.sort!=undefined) query+="&field="+params.data.sort;
+		if (params.data.onlysort!=undefined) query+="&onlysort="+params.data.onlysort;
+
 		if (!status) {
 			$table.data("init",true);
 			$table.attr("data-init",true);
 			{% if data is defined and data != null %} 
 				var data={{ data | json_encode | raw }};
 				var datastr=JSON.stringify(data);
+
 				if (params.data.offset==undefined)	{
 					params.success(data);
 					$table.data("data",datastr);
@@ -73,13 +78,13 @@
 					$table.attr("data-data",datastr);
 				}
 			{% else %}
-				callServer("{{ajaxurl}}","do={{commandlist}}",function(data) { 
+				callServer("{{ajaxurl}}","do="+query,function(data) { 
 					if (params.data.offset==undefined)		params.success(data.rows)
 					else												params.success(data);
 				});
 			{% endif %}
 		} else {
-			callServer("{{ajaxurl}}","do={{commandlist}}",function(data) {
+			callServer("{{ajaxurl}}","do="+query,function(data) {
 				if (params.data.offset==undefined)		params.success(data)
 				else												params.success(data);
 				{% if select is defined and select != "null" %}
@@ -156,6 +161,13 @@
 			height: $table.parent().height(),
 			ajax: table_ajaxRequest_{{idtable}},
 			searchOnEnterKey: true,
+			queryParams: function(params) {
+				var br=$table.data("buttonreload");
+				if (br===false) params["onlysort"]=true;
+				$table.data("buttonreload",true);
+				return params;
+			},
+			rememberOrder: true,
 			pageList: [10, 25, 50, 100, 'All'],
 			columns:[
 				{% if checkbox is defined %}
@@ -181,6 +193,10 @@
 					reloadSelect("{{select}}",data);
 				{% endif %}
 				$("#alertbody").alert("close");
+			});
+			$table.on('sort.bs.table', function(e,field,order,test) {
+				$table=$("#{{idtable}}"); 
+				$table.data("buttonreload",false);
 			});
 			$("#maketable_{{idtable}}").remove();
 		},200);

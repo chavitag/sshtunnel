@@ -37,6 +37,12 @@
     background-color: #ce5c00; color: #FFFFFF;
 }
 
+.onoffswitch-stopping .onoffswitch-inner:before {
+    content: "Stop";
+    padding-left: 10px;
+    background-color: #e9b96e; color: #FFFFFF;
+}
+
 .onoffswitch-inner:after {
     content: "Off";
     padding-right: 10px;

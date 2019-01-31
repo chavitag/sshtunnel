@@ -48,6 +48,8 @@ class Tunnel {
      */
     private $users;
 
+	private $monitor;
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
@@ -105,6 +107,14 @@ class Tunnel {
 
         return $this;
     }
+
+	public function setMonitor($monitor) {
+		$this->monitor=$monitor;
+	}
+
+	public function getMonitor() {
+		return $this->monitor;
+	}
 
     /**
      * @return Collection|UserTunnels[]
@@ -166,7 +176,7 @@ class Tunnel {
 	*/
 	public static function getTunnels($user) {
 		if ($user==null)	throw new \Exception("Sesión no iniciada",-1);
-		$tunnels=$user->getTunnels();
+		$tunnels=$user->getTunnels();  // Usertunnels
 		$data=array("total"=>count($tunnels),"rows"=>array());
 		foreach($tunnels as $tr) {
 			$t=$tr->getTunnel();
@@ -206,7 +216,6 @@ class Tunnel {
 		$this->addUser($usertunnel);
 		$user->addTunnel($usertunnel);
 
-		//$listatunnels=$this->getDoctrine()->getRepository(Tunnel::class)->findAll();
 		$listatunnels=$doctrine->getRepository(Tunnel::class)->findAll();
 		foreach($listatunnels as $t) {
 			if ($this->compareTo($t) == 0) {

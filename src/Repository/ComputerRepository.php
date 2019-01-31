@@ -19,10 +19,10 @@ class ComputerRepository extends ServiceEntityRepository
         parent::__construct($registry, Computer::class);
     }
 
-	 public function findAll()
+	 /* public function findAll()
     {
         return $this->findBy(array(), array('ip' => 'ASC'));
-    }
+    } */
 
 //    /**
 //     * @return Computer[] Returns an array of Computer objects

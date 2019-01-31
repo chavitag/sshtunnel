@@ -4,9 +4,7 @@
 	{% set cb = "" %}
 {% endif %}
 
-{% if running is defined and running == 1 %}
-	{% set runningclass="onoffswitch-running" %}
-{% else %}
+{% if runningclass is not defined %}
 	{% set runningclass="" %}
 {% endif %}
 

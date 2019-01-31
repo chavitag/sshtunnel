@@ -4,11 +4,17 @@
 	{% set detailview = '' %}
 {% endif %}
 
+{% if switch == "off" %}
+	{% set ajaxurl="/list/computers.json" %}
+{% else %}
+	{% set ajaxurl="/status/computers" %}
+{% endif %}
+
 <div class="container" style='height: 409px; font-size: 80%; margin: 0px auto 0px auto; ' >
 {% if rol == "ADMIN" %}
 	{% include "widgets/table.html.twig" with 
 		{	"idtable":"__table__"~id,
-			"ajaxurl":"/list/computers.json",
+			"ajaxurl":ajaxurl,
 			"commandlist":"l_computers",
 			"checkbox":true,
 			"select":id,
@@ -21,10 +27,10 @@
 			],
 			"columns": [
 				{"field":"description","title":"Descripción","sortable":"true","width":"48%"},
-				{"field":"domain","title":"Nombre Equipo (FQDN)","width":"23%"},
-				{"field":"ip","title":"Dirección IP","width":"12%"},
-				{"field":"mac","title":"Dirección MAC","width":"19%"},
-				{"field":"running","formatter":"statusFormatterComputerButton","title":"Estado","width":"78px"},
+				{"field":"domain","title":"Nombre Equipo (FQDN)","sortable":"true","width":"23%"},
+				{"field":"ip","title":"Dirección IP","sortable":"true","width":"12%"},
+				{"field":"mac","title":"Dirección MAC","sortable":"true","width":"19%"},
+				{"field":"status","formatter":"statusFormatterComputerButton","title":"Estado","width":"78px"},
 			],
 			"data": data
 		}
@@ -40,9 +46,9 @@
 			"clickevent":"selectRow",
 			"columns": [
 				{"field":"description","title":"Descripción","sortable":"true","width":"48%"},
-				{"field":"domain","title":"Nombre Equipo (FQDN)","width":"23%"},
-				{"field":"ip","title":"Dirección IP","width":"12%"},
-				{"field":"mac","title":"Dirección MAC","width":"19%"},
+				{"field":"domain","title":"Nombre Equipo (FQDN)","sortable":"true","width":"23%"},
+				{"field":"ip","title":"Dirección IP","sortable":"true","width":"12%"},
+				{"field":"mac","title":"Dirección MAC","sortable":"true","width":"19%"},
 				{"field":"running","formatter":"statusFormatterComputerButton","title":"Estado","width":"78px"},
 			],
 			"data": data
@@ -165,31 +171,62 @@
 			$(sw).parent().addClass("onoffswitch-running");
 			messageAlert("Encendendo equipo...",INFO);
 			//callServer("/change/computer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
-			callServer("/change/switchcomputer","id="+id+"&status="+running,function(data) {
+			/*callServer("/change/switchcomputer","id="+id+"&status="+running,function(data) {
 				$("#alertbody").alert("close");
-			});
+			});*/
+			callServer("/change/switchcomputer","id="+id+"&status="+running,reloadTable,"__table__{{id}}");
 		} catch(e) {
 			messageAlert(e,ERROR);
 		}
 	}
 
+	function switchComputerByRow(event,sw,id,running) { 
+		if (running == false) {
+			messageAlert("No disponemos de la información necesaria para el apagado",WARNING,3000);
+			$(sw).prop("checked",true);
+			return;
+		}
+		var $table=$("#__table__{{id}}");
+		var row=$(sw).closest("#__table__{{id}} tr");
+		var idx=$(row).data("index"); 
+		try {
+			var data=JSON.parse($table.data("data"));
+			if ((data.rows[idx].mac=="") && (running)) {
+				messageAlert("Imposible encender equipo, no disponemos de su dirección MAC",WARNING,3000);
+				$(sw).prop("checked",false);
+				return;
+			}
+			$(sw).parent().addClass("onoffswitch-running");
+			messageAlert("Encendendo equipo...",INFO);
+			callServer("/change/switchcomputer","id="+id+"&status="+running+"&all=yes",reloadTable,"__table__{{id}}");
+		} catch(e) {
+			messageAlert(e,ERROR);
+		}
+	}
+
+{% if switch == "off" %}
 	function statusFormatterComputerButton(value,row,index,field) {
 		var html="<button type=\"button\" onclick=\"verifyComputer('"+row.domain+" ["+row.ip+"]')\" class=\"btn btn-info\">Verificar</button>";
 		return html;
 	}
+{% else %}
+	// Muestra los Botones
+	function statusFormatterComputerButton(value,row,index,field) { 
+		var html="{{ include("templates/widgets/switch.html.twig",{"id":"%rowid%", "name": "onoffcomputer", "checked":"%status%","callback":"switchComputerByRow","runningclass":"%value%" }) | escape("js") }}";
 
-/*
-	function statusFormatterComputer(value,row,index,field) { 
-		var html="{{ include("/templates/widgets/switch.html.twig",{"id":"%rowid%", "name": "onoffcomputer", "checked":"%status%","callback":"switchComputer"}) }}";
+		// Value  ---> 0: off, 1: starting, 2: running, 3 shuttingdown 
+		if (value) {
+			html=html.replace(/%status%/g,"checked");
+			if (value==1) html=html.replace(/%value%/g,"onoffswitch-running"); 
+			else if (value==3) html=html.replace(/%value%/g,"onoffswitch-stopping"); 
+		}	else 		  html=html.replace(/%status%/g,"");
+		html=html.replace(/%rowid%/g,row.id);
 
-		// Value  ---> 0: off, 1: starting, 2: off ???
-		if (value) html=html.replace(/%status%/g,"checked");
-		else 		  html=html.replace(/%status%/g,"");
-		html=html.replace(/%rowid%/g,row.id)
-		if ((row.startTime!=undefined)&&(row.startTime!="0")) html=html.replace(/%running%/g,"onoffswitch-running");
-		else																	html=html.replace(/%running%/g,"");
-		var result = $('<textarea />').html(html).text();
-		return result;
+		/*if ((row.startTime!=undefined)&&(row.startTime!="0")) html=html.replace(/%running%/g,"onoffswitch-running");
+		else																	html=html.replace(/%running%/g,"");*/
+		/*var result = $('<textarea />').html(html).text();
+		return result;*/
+		return html;
 	}
-*/
+{% endif %}
 </script>

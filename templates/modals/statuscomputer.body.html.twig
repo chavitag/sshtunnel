@@ -3,7 +3,7 @@
 		{{description}} - {{domainname}} [{{ip}}]
 	</div>
 	<div class="col-md-2">
-		{% include "widgets/switch.html.twig" with {"name": "onoffcomputer", "callback":"switchComputer"} %}
+		{% include "widgets/switch.html.twig" with {"name": "onoffcomputer", "callback":"switchComputer", "checked": checked } %}
 	</div>
 </div>
 <input type="hidden" id="computer_mac" value="{{mac}}"/>

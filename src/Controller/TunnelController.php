@@ -31,11 +31,14 @@ class TunnelController extends FacadeController {
 	public function index(Request $request) {
 		$user=$this->getUser();
 		$this->update();
+		$tunnels=Tunnel::getTunnels($user);
+		$tunnels["rows"]=$this->sortTunnels($tunnels["rows"],$request);
+
 		return $this->render('index.html.twig',
 			array(
 				"user"=>$user,
 				"services"=>Service::getServices($user),
-				"tunnels"=>Tunnel::getTunnels($user),
+				"tunnels"=>$tunnels,
 				"computers"=>Computer::getComputers($user),
 			)
 		);
@@ -46,9 +49,31 @@ class TunnelController extends FacadeController {
 	*/
 	public function listTunnelsAction(Request $request=null) {
 		$data=Tunnel::getTunnels($this->getUser());
+		$data["rows"]=$this->sortTunnels($data["rows"],$request);
 		return $this->json($data);
 	}
 
+	private function sortTunnels($data,$request) {
+	// Order by criteria....
+
+		$params=$this->getOrder();
+		$field=null;
+		$order=null;
+		if ($request!=null) {
+			$field=$request->get("field");
+			$order=$request->get("order");
+		}
+		if (($order==null)&&($params[1]!=null)) $order=$params[1];
+		if (($field==null)&&($params[0]!=null)) $field=$params[0];
+		if ($field==null) $field="description";
+		if ($order==null) $order="asc";
+
+		$params=array($field,$order);
+		$this->setOrder($params);
+
+		return $this->dataSort($data,$field,$order);
+	}
+	
 	/** 
 	* @Route("/save/tunnel", name="s_tunnel")
 	*/
@@ -92,7 +117,6 @@ class TunnelController extends FacadeController {
 			$entityManager->flush();
 			return $this->listTunnelsAction();
 		} catch(\Exception $e) {
-			//throw new \Exception($e->getMessage());
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		}
 	}
@@ -109,7 +133,8 @@ class TunnelController extends FacadeController {
 			$data=$this->info();
 			$tun=UserTunnels::getInstance($doctrine,$this->getUser(),$tunnelid);
 			$tun->setRunning($tunnelstatus=="true");
-			// Si es "apagar" el túnel, hacerlo solo si ningun usuario lo tiene encendido....
+
+			// Check tunnel status, don't delete opened tunnels
 			$tunnel=$tun->getTunnel();
 			$entityManager->persist($tun);
 
@@ -126,7 +151,7 @@ class TunnelController extends FacadeController {
 			$tunnel->setStarted($tunnelstatus=="true");
 			$entityManager->persist($tunnel);
 			$entityManager->flush();
-			return $this->update(array("command"=>"change_tunnel_status","id"=>intval($tunnelid),"status"=>($tunnelstatus=="true")));
+			return $this->update(array("command"=>"change_tunnel_status","id"=>intval($tunnelid),"status"=>($tunnelstatus=="true")),false);
 		} catch(\Exception $e) {
 			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
 		}

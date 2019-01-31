@@ -57,14 +57,21 @@ class Computer
 
 	 private $session;
 
+	 private $startTime;
+
+	 private $scan;
+
+	 private $lastscan;
+
     public function __construct()
     {
 //$this->session = new Session();
 //$this->session->start();
-
-        $this->status = false;
-        $this->roles = new ArrayCollection();
-        $this->tunnels = new ArrayCollection();
+		$this->scan = false;
+		$this->lastscan=0;
+		$this->status = false;
+		$this->roles = new ArrayCollection();
+		$this->tunnels = new ArrayCollection();
     }
 
     public function getId()
@@ -151,23 +158,28 @@ class Computer
 	/** return true (Computer is running) / false (Computer is off)
 	*/
 	public function getStatus() {
+		$this->session = new Session();
+		$this->status = $this->session->get("status_".$this->id,0);
 		return $this->status;
 	}
 
 	public function setStatus($status) {
+		$this->session = new Session();
+		$this->session->set("status_".$this->id,$status);
 		$this->status=$status;
 	}
 
 	public function setStartTime($time) {
 		$this->session = new Session();
 		$this->session->set("start_".$this->id,$time);
+		$this->startTime=$time;
 	}
 
 	public function getStartTime() {
 		$this->session = new Session();
-		return $this->session->get("start_".$this->id,0);
+		$this->startTime=$this->session->get("start_".$this->id,0);
+		return $this->startTime;
 	}
-
 
     /**
      * @return Collection|UserTunnels[]
@@ -200,6 +212,24 @@ class Computer
         return $this;
     }
 
+	public function setScan($onoff) {
+		if ($onoff==true) $this->scan=true;
+		else              $this->scan=false;
+	}
+
+	public function getScan() {
+		return $this->scan;
+	}
+
+	public function getLastscan() {
+		if (!defined($this->lastscan)) $this->lastscan=0;
+		return $this->lastscan;
+	}
+
+	public function setLastscan($time) {
+		$this->lastscan=$time;
+	}
+
 	/** Gets available user computers, and returns an associative array formatted for bootstrap-table
 	*/
 	public static function getComputers($user) {
@@ -207,7 +237,7 @@ class Computer
 		$computers=$user->getRol()->getComputers();
 		$data=array("total"=>count($computers),"rows"=>array());
 		foreach($computers as $c) {
-			$row=array("id"=>$c->getId(),"domain"=>$c->getDomainname(),"ip"=>$c->getIp(),"description"=>$c->getDescription(),"mac"=>$c->getMac(),"running"=>$c->getStatus(),"startTime"=>$c->getStartTime());
+			$row=array("id"=>$c->getId(),"domain"=>$c->getDomainname(),"ip"=>$c->getIp(),"description"=>$c->getDescription(),"mac"=>$c->getMac(),"status"=>$c->getStatus(),"startTime"=>$c->getStartTime(),"scan"=>false,"lastScan"=>$c->getLastScan());
 			$data["rows"][]=$row;
 		}
 		return $data;
