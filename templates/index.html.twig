@@ -162,6 +162,7 @@
 		messageAlert("Examinando estado dos equipos...",INFO);
 		callServer("/status/computers","",function(data) {
 			$("#alertbody").alert("close");
+
 			__select__content["computers"]=data;
 			var params={"id":"computers","select":"null","modalsize":"modal-1024","data": __select__content["computers"],"rol":"{{user.rol.rol}}","switch":"on"};
 			openModalTemplate('computers','Encendido de Equipos',"_modalbody_computers",params);
@@ -175,6 +176,32 @@
 			__select__content["computers"]=data;
 			callback(data);
 		});
+	}
+
+	/* On/Off Computer
+	*/
+	function switchComputer(event,sw,id,running) { 
+		if (running == false) {
+			messageAlert("No disponemos de la información necesaria para el apagado",WARNING,3000);
+			$(sw).prop("checked",true);
+			return;
+		}
+		try {
+			var mac=document.getElementById("computer_mac").value;
+			if ((mac=="") && (running)) {
+				messageAlert("Imposible encender equipo, no disponemos de su dirección MAC",WARNING,3000);
+				$(sw).prop("checked",false);
+				return;
+			}
+			$(sw).parent().addClass("onoffswitch-running");
+			messageAlert("Encendendo equipo...",INFO);
+
+			callServer("/change/switchcomputer","id="+id+"&status="+running,function(data) {
+				$("#alertbody").alert("close");
+			});
+		} catch(e) {
+			messageAlert(e,ERROR);
+		}
 	}
 
 	function statusFormatterTunnel(value,row,index,field) { 

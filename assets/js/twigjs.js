@@ -48,6 +48,7 @@ function renderTemplate(namet,jsondata,callback,param) {
 						//error=err.msg;
 						throw err.msg;
 					} catch(e) {
+						_twig_tmpl[namet]=tmpl;
 						if (callback!=undefined) callback(tmpl.render(rjson),param);
 					}
 				}
@@ -70,7 +71,7 @@ function renderTemplate(namet,jsondata,callback,param) {
 			setTimeout(function() { document.location='/'; },1000);
 			throw "No se pudo cargar la plantilla "+namet;
 		}
-		else 	return t.render(rjson);
+		else 	return t.render(rjson,param);
 	} else {
 		if (error!=null) {
 			//Twig.cache();

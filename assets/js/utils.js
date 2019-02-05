@@ -12,7 +12,6 @@ function callServer(controller,query,callback,params,type,context) {
 	if ((query===null)||(query=="null")) query="isajax=true";
 	else query+="&isajax=true";
 
-alert("Querying...."+query);
 	$.ajax({
 		url: controller,
 		context: context,
@@ -65,9 +64,12 @@ function getIdSelections(id) {
 
 function reloadTable(data,id) {
 	var table=$("#"+id);
+	var pos=table.bootstrapTable("getScrollPosition");
 	table.bootstrapTable("load",data);
 	table.trigger("load-success.bs.table",data);
 	table.trigger("uncheck-all.bs.table");
+	var bodytable=table.parent();
+	bodytable.scrollTop(pos);
 }
 
 function fixmargins(id,value,row,index,field) { 
