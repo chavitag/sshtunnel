@@ -13,6 +13,12 @@
 
 static JSONDATA *__computers=NULL;		// Computer's circular list to keep computer's status
 
+
+void freeComputers(void) {
+	if (__computers!=NULL) freeJson(__computers);
+	__computers=NULL;
+}
+
 JSONDATA *computerWalk(JSONDATA *last) {
 	if (last==NULL) return __computers;
 	else return __computers->next;
@@ -42,8 +48,16 @@ Computer *registerComputer(JSONDATA *computer,Computer *c) {
 	JSONDATA *old;
 	JSONDATA *temp;
 
+#ifdef _DEBUG
+printf("Registering new Computer %s\n",COMPUTER_IP(*c)); fflush(stdout);
+#endif
+
 	if ((old=getComputer(COMPUTER_ID(*c),&rc))!=NULL) {	 // Exists, update information and delete old node
 		if (old==computer) return c;
+
+#ifdef _DEBUG
+printf("%s Exists, updating data\n",COMPUTER_IP(*c)); fflush(stdout);
+#endif
 
 		COMPUTER_STATUS(*c)=COMPUTER_STATUS(rc);
 		COMPUTER_STARTTIME(*c)=COMPUTER_STARTTIME(rc);
@@ -80,6 +94,11 @@ Computer *registerComputer(JSONDATA *computer,Computer *c) {
 		__computers->prev=computer;
 
 	}
+
+#ifdef _DEBUG
+printf("Computer %s registered!!!\n",COMPUTER_IP(*c)); fflush(stdout);
+#endif
+
 	return c;
 }
 
@@ -89,6 +108,12 @@ Computer *registerComputer(JSONDATA *computer,Computer *c) {
 int getStatusComputer(Computer *c) {
 	time_t t;
 	int alive;
+
+#ifdef _DEBUG
+printf("Comprobando estado o equipo ");
+printf(COMPUTER_IP(*c));
+printf("\n"); fflush(stdout);
+#endif
 
 	// Check Computer status...
 	t=time(NULL);

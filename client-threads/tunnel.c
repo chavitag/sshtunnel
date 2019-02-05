@@ -48,9 +48,12 @@ int turnOnTunnel(Tunnel *t) {
 void onTunnel(int monitor,int sourceport,char *ip,int destport) {
 	char buffer[1024];
 	time_t now;
+	char echoport[8];
 
+	if (ECHOPORT!=0) snprintf(echoport,8,":%d",ECHOPORT);
+	else 	echoport[0]=0;
 	time(&now);
-	snprintf(buffer,1024,"/usr/lib/autossh/autossh -f -M %d -N -R %d:%s:%d	%s	-p%d", monitor, sourceport, ip, 
+	snprintf(buffer,1024,"/usr/lib/autossh/autossh -f -M %d%s -N -R %d:%s:%d	%s	-p%d", monitor, echoport, sourceport, ip, 
 				destport, GW, GW_PORT);
 	syslog(LOG_LOCAL7,"%s -> ON TUNNEL: %s\n",ctime(&now),buffer);
 	run(buffer);
@@ -70,10 +73,14 @@ int turnOffTunnel(Tunnel *t) {
 void offTunnel(int monitor,int sourceport,char *ip,int destport) {
 	char buffer[1024];
 	time_t now;
+	char echoport[8];
+
+	if (ECHOPORT!=0) snprintf(echoport,8," %d",ECHOPORT);
+	else 	echoport[0]=0;
 	
 	time(&now);
-	snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep \"[M] %d -N -R %d:%s:%d\"|tr -s ' '|cut -d' ' -f 4`; if ! [ -z \"$xx\" ]; then pkill -P $xx; fi",
-				monitor,sourceport,ip,destport);
+	snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep \"[M] %d%s -N -R %d:%s:%d\"|tr -s ' '|cut -d' ' -f 4`; if ! [ -z \"$xx\" ]; then pkill -P $xx; fi",
+				monitor,echoport,sourceport,ip,destport);
 	syslog(LOG_LOCAL7,"%s -> OFF TUNNEL: %s\n",ctime(&now),buffer);
 	run(buffer);  // run shell command
 }
@@ -97,14 +104,23 @@ int verifyTunnel(int source,char *ip,long int *monitor,int dest) {
 	char result[1024];
 	int status;
 
+#ifdef _DEBUG
+printf("Testing tunnel %d:%s:%d\n",source,ip,dest);
+#endif
+
 	if (source==0) {
-		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{5\\} -N -R [0-9]\\{5\\}:%s:'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",ip);
+		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{5\\} \\?[0-9]\\? -N -R [0-9]\\{5\\}:%s:'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",ip);
 	} else {
-		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{5\\} -N -R %d:%s:%d'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",source,ip,dest);
+		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{5\\} \\?[0-9]\\? -N -R %d:%s:%d'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",source,ip,dest);
 	}
 	runStr(buffer,result,1023); // Run shell command and gets an string result
 	if (strlen(result)>0) {
 		*monitor=atoi(result);
+
+#ifdef _DEBUG
+printf("Tunnel running. Monitor port %d\n",*monitor);
+#endif
+
 		return 1;
 	} else *monitor=0;
 	return 0;
@@ -117,6 +133,8 @@ int getMonitorPort(void) {
 	int port=64000;
 	char buffer[256];
 	int status;
+
+	if (ECHOPORT!=0) return DEFAULT_MONITOR_PORT;
 
 	do {	// Scan free monitor port
 		port-=2;

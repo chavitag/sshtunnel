@@ -34,7 +34,7 @@ typedef struct tagComputer {
 	VALUEJSON *scan;	// 0 not check status, 1 check status
 } Computer;
 
-
+extern void freeComputers(void);
 extern JSONDATA *computerWalk(JSONDATA *last);
 extern JSONDATA *getComputer(unsigned int id,Computer *c);
 extern Computer *registerComputer(JSONDATA *computer,Computer *c);

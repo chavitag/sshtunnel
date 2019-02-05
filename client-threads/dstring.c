@@ -23,17 +23,17 @@ DString *dstring(const char *str) {
 		if (dstr->string == NULL) {
 			free(dstr); dstr=NULL;
 		} else {
-			if (len > 0) strcpy(dstr->string,str);
+			if (len > 0) memcpy(dstr->string,str,len+1);
 			else         dstr->string[0]=0;
 		}
-	} else {
+	/*} else {
 		dstr->size=sz;
 		dstr->length=0;
 		dstr->string=malloc(DSTRING_CHUNK);
 		if (dstr!=NULL) dstr->string[0]=0;
 		else {
 			free(dstr); dstr=NULL;
-		}
+		}*/
 	}
 	return dstr;
 }
@@ -49,7 +49,7 @@ DString *dstrcat(DString *dstr,const char *str) {
 
 	tot=dstr->length+len;
 	while (sz <= tot ) sz+=DSTRING_CHUNK;
-	if (sz >= dstr->size) {
+	if (sz > dstr->size) {
 		newstr=realloc(dstr->string,sz);
 		if (newstr==NULL) {
 			free(dstr->string);
@@ -80,7 +80,7 @@ DString *dstrcpy(DString *dstr,const char *str) {
 	int len;
 
 	len=strlen(str);
-	if (len > DSTR_SIZE(dstr)) {
+	if (len >= DSTR_SIZE(dstr)) {
 		dsfree(dstr);
 		return dstring(str);
 	} else {
@@ -99,7 +99,7 @@ char *dstrget(DString *dstr) {
 	char *str;
 
 	str=realloc(dstr->string,dstr->length+1);
-	free(dstr);
+	if (str!=NULL) free(dstr);
 	return str;
 }
 

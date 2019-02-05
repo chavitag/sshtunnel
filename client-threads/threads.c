@@ -2,6 +2,10 @@
 
 #include "threads.h"
 
+#define RUNNING 1
+#define END 	2
+#define INIT	0
+
 typedef struct tagStatusThread {
 	void *(*_thread_function) (int ,void *);
 	void *params;
@@ -38,7 +42,7 @@ int newThread(	void *(*_thread_function) (int,void *),void *params) {
 		ends a thread with a result code
 */
 void endThread(int id,void *result) {
-	__poolthread[id].status=2;
+	__poolthread[id].status=END;
 	__poolthread[id].result=result;
 	pthread_exit(result);
 }
@@ -49,8 +53,9 @@ void endThread(int id,void *result) {
 int joinThread(int id) {
 	int ret;
 
-	if (__poolthread[id].status==1) {
+	if (__poolthread[id].status>0) {
 		ret=pthread_join(__poolthread[id].thread_id,NULL);
+		__poolthread[id].status=INIT;
 		if (ret!=0) return ret;
 	}
 	return 0;
@@ -66,6 +71,7 @@ int joinThreads() {
 	while(idx>=0) {
 		if (__poolthread[idx].status>0) {
 			ret=pthread_join(__poolthread[idx].thread_id,NULL);
+			__poolthread[idx].status=INIT;
 			if (ret!=0) return ret;
 		}
 		idx--;
@@ -85,7 +91,7 @@ pthread_t getIdThread(int id) {
 */
 void *getResultThread(int id) {
 	void *result=__poolthread[id].result;
-	__poolthread[id].status=0;
+	__poolthread[id].status=INIT;
 	return result;
 }
 
@@ -108,9 +114,9 @@ static int createThread(ParamsThread *params) {
 		__poolthread[id]._thread_function=params->_thread_function;
 		__poolthread[id].params=params->params;
 		__poolthread[id].pool_id=id;
-		if (pthread_create(&__poolthread[id].thread_id,NULL,launchThread,(void *)((long)id))) id=-1;
-		else {
-			__poolthread[id].status=1;
+		if (pthread_create(&__poolthread[id].thread_id,NULL,launchThread,(void *)((long)id))) {
+			__poolthread[id].status=INIT;
+			id=-1;
 		}
 	}
 	pthread_mutex_unlock( &__mutexthread );
@@ -123,8 +129,18 @@ static int createThread(ParamsThread *params) {
 static void *launchThread(void *params) {
 	long id=(long)params;
 
-__poolthread[id].result=__poolthread[id]._thread_function(id,(char *)__poolthread[id].params);
-	__poolthread[id].status=2;
+#ifdef _DEBUG
+	printf("Starting service thread %d...\n ",id); fflush(stdout);
+#endif
+
+	__poolthread[id].status=RUNNING;
+	__poolthread[id].result=__poolthread[id]._thread_function(id,(char *)__poolthread[id].params);
+	__poolthread[id].status=END;
+
+#ifdef _DEBUG
+	printf("END service thread %d...\n ",id); fflush(stdout);
+#endif
+
 	return __poolthread[id].result;
 }
  
@@ -135,8 +151,8 @@ static int findFreeThread() {
 	int idx=0;
 	int runned=-1;
 	
-	while ((__poolthread[idx].status!=0)&&(idx<MAXTHREADS)) {
-		if (__poolthread[idx].status==2) runned=idx;
+	while ((__poolthread[idx].status!=INIT)&&(idx<MAXTHREADS)) {
+		if (__poolthread[idx].status==END) runned=idx;
 		idx++;
 	}
 	if (idx==MAXTHREADS) return runned;
@@ -152,7 +168,7 @@ static void initializeThreads() {
 	if (__initialized==0) {
 		while(idx<MAXTHREADS) {
 			__poolthread[idx].thread_id=0;
-			__poolthread[idx].status=0;
+			__poolthread[idx].status=INIT;
 			idx++;
 		}
 		__initialized=1;

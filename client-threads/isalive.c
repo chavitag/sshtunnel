@@ -129,7 +129,6 @@ static int send_packet(int sockfd, pid_t pid,struct sockaddr_in *dest_addr) {
 	wait_time.tv_nsec=5000000;
 
 	nsend=0;
-	memset(&sendpacket, 0, sizeof(sendpacket));
 	while (nsend < MAX_NO_PACKETS)   {
 		nsend++;
 		packetsize = pack(pid,nsend,sendpacket); 
@@ -190,9 +189,9 @@ static int unpack(pid_t pid,char *buf, int len) {
 	return  -1;
 }
 
-/*
+
 void main(int argc,char *argv[]) {
 	if (isAlive(argv[1])>0)	printf("%s Is On\n",argv[1]);
 	else							printf("%s Is Off\n",argv[1]);
-}*/
+}
 

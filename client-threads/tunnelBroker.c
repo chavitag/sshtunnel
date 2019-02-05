@@ -54,6 +54,7 @@ char __request[256];
 int __pipefd[2];  // 0 reading, 1 writing
 int __pipeComm[2];	
 pid_t __whoami;	// 0, son. PID_SON, father
+int __quit=0; 
 
 int processTunnels(JSONDATA *jstunnels);
 int processComputers(JSONDATA *jscomputers);
@@ -142,7 +143,7 @@ int threadCommandTunnel(Tunnel *t, int command) {
 int processTunnels(JSONDATA *jstunnels) {
 	JSONDATA *tunnel;
 	Tunnel t;
-	long int running;
+	int running;
 	int started;
 
 	tunnel=jstunnels;
@@ -179,6 +180,10 @@ int processComputers(JSONDATA *jscomputers) {
 	JSONDATA *computer;
 	JSONDATA *nextcomputer;
 	Computer c;
+
+#ifdef _DEBUG
+printf("Processing Computers\n"); fflush(stdout);
+#endif
 
 	computer=jscomputers;
 	while(computer!=NULL) {
@@ -224,6 +229,9 @@ int doCommand(JSONDATA *action) {
 		action=action->next;
 	}
 	if (strcmp(command,"change_tunnel_status")==0) {			// On/Off tunnel
+		ret=0;
+	} else if (strcmp(command,"kill")==0) {
+		__quit=1;
 		ret=0;
 	} else if (strcmp(command,"delete_computers")==0) {		// Deletes computer from list
 		Tunnel t;
@@ -300,11 +308,13 @@ DString *JSON_response(JSONDATA *jstunnels) {
 	temp=JSON_ComputerList();
 
 	json=dstrjoin(json,temp);
+	dsfree(temp);
 
 	json=dstrcat(json,", \"tunnels\":");
 	temp=JSON_TunnelList(jstunnels);
 
 	json=dstrjoin(json,temp);
+	dsfree(temp);
 
 	json=dstrcat(json,"}");
 	return json;
@@ -354,6 +364,11 @@ void testRenew() {
 
 				read(poll_set.fd,buffer,bytesread);
 				buffer[bytesread]=0;
+
+#ifdef __DEBUG
+printf("Recibido comando de un thread %s\n",buffer); fflush(stdout);
+#endif
+
 				// Parsing Command
 				token=strtok(buffer,"*");
 				while((token!=NULL)&&(pos<6)) {
@@ -375,8 +390,10 @@ void testRenew() {
 
 					monitor=-1;
 					// If command is not "get tunnel status", and is renew time, do renew....
-					if ((strcmp(params[1],"GET")!=0)&&((time(NULL)-renewtime) > TIMERENEW)) renewData();  // This change tunnel status...
-					else {
+					if ((strcmp(params[1],"GET")!=0)&&((time(NULL)-renewtime) > TIMERENEW)) {
+						renewData();  // This change tunnel status...
+						renewtime=time(NULL);
+					} else {
 						int sport=atoi(params[3]);
 						int dport=atoi(params[5]);
 
@@ -401,6 +418,7 @@ void testRenew() {
 			running=verifyTunnel(63000,"127.0.0.1",&monitor,1777);	// Service tunnel
 			if (!running) onTunnel(62997,63000,"127.0.0.1",1777);
 			renewData();	// User's tunnels
+			renewtime=time(NULL);
 		}
 	}
 }
@@ -499,7 +517,6 @@ char *process(char *data,int size) {
 */
 void *doWork(int idthread,void *skd_addr) {
 	char bufrcv[1000000];
-	char bufsnd[1000000];
 	char *response;
 	char *errmsg="{\"ok\":false,\"msg\":\"Out of Buffer\"}";
 	long int skd=(long int)skd_addr;
@@ -509,9 +526,14 @@ void *doWork(int idthread,void *skd_addr) {
 	pthread_detach(pthread_self()); // No join...
 
 	// reads JSON command from server
-	int nc=recv(skd,bufrcv,sizeof(bufrcv),0);
+	int nc=recv(skd,bufrcv,sizeof(bufrcv)-1,0);
 	if (nc>0) { 
 		bufrcv[nc]=0;
+
+#ifdef _DEBUG
+printf("Recibida petición: %s\n",bufrcv); fflush(stdout);
+#endif
+
 		response=process(bufrcv,sizeof(bufrcv));	// processing request
 		setsockopt(skd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
 		if (response!=NULL)	flag=send(skd,response,strlen(response),0);	// send response
@@ -580,7 +602,10 @@ void waitRequests(int port) {
 		if (bind(sk,(struct sockaddr *)&addr,sizeof(addr))!=-1) {
 			if (listen(sk,5)!=-1) {
 				sz=sizeof(addr);
-				while(1) {
+				while(!__quit) {
+#ifdef _DEBUG
+	printf("Waiting for connection: "); fflush(stdout);
+#endif
 					skd=accept(sk,(struct sockaddr *)&addr,&sz);
 					if (skd!=-1) {
 						if (newThread(doWork,(void *)skd)<0) {	// Create service thread
@@ -594,6 +619,8 @@ void waitRequests(int port) {
 		} else syslog(LOG_LOCAL7,"Can't bind address\n");
 		close(sk);
 	} else syslog(LOG_LOCAL7,"Can't open socket\n");
+	if (joinThreads()!=0) syslog(LOG_LOCAL7,"ERROR IN THREAD");
+	freeComputers();
 	kill(__whoami,SIGKILL);
 	close(PIPEWRITE);
 	close(PIPECOMMREAD);
@@ -611,6 +638,9 @@ void main(int argc,char *argv[]) {
 		exit(0);
 	}
 	snprintf(__request,sizeof(__request),REQUEST,argv[1]);
+
+#ifndef _DEBUG
+	
 	if ((pid=fork())==-1)  {
 		exit(EXIT_FAILURE); 	 
 	}
@@ -621,8 +651,11 @@ void main(int argc,char *argv[]) {
 		syslog(LOG_LOCAL7,"Error setsid %s\n",strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	//close(STDOUT_FILENO);
-	//close(STDERR_FILENO);
+	
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+
+#endif
 	waitRequests(PORT);
 	exit(EXIT_SUCCESS);		    
 }
