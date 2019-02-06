@@ -173,7 +173,16 @@ JSONDATA *newNodeJson(JSONDATA *root,int type,char *field,VALUEJSON info) {
 */
 JSONDATA *cutNodeJson(JSONDATA *node) {
 	JSONDATA *father=node->father;
-	if (father!=NULL) { // It's a first object node (Object,Array): CUT
+
+#ifdef _DEBUG
+printf("Cutting Node %X\n",node); fflush(stdout);
+#endif
+
+	if (father!=NULL) { // It's a first object node (Object,Array): Unlink and cut father node....
+
+#ifdef _DEBUG
+printf("Unlinking and freeing the father node (%X)\n",father); fflush(stdout);
+#endif
 
 		if (father->prev!=NULL) father->prev->next=father->next;
 		if (father->next!=NULL) father->next->prev=father->prev;
@@ -181,7 +190,13 @@ JSONDATA *cutNodeJson(JSONDATA *node) {
 		node->prev=NULL;
 		free(father);
 	} else {  // It's a data node (array, object, string, numeric, boolean...), unlink
-		if (node->prev!=NULL) node->prev->next=node->next;
+
+#ifdef _DEBUG
+printf("Unlink Node (%X)\n",node); fflush(stdout);
+#endif
+
+		// Last must point to NULL
+		if ((node->prev!=NULL)&&(node->prev->next!=NULL)) node->prev->next=node->next;
 		if (node->next!=NULL) node->next->prev=node->prev;
 		node->next=NULL;
 		node->prev=NULL;

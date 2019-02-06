@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -DWITHPTHREADS 
+CFLAGS= -DWITHPTHREADS -D_DEBUG 
 
 all: tunnelBroker
 

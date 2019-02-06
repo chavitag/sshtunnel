@@ -17,6 +17,14 @@ Tunnel *parseTunnel(JSONDATA *jstunnel,Tunnel *t) {
 	if (jstunnel->type!=JSON_OBJECT) return NULL;
 	memset(t,0,sizeof(Tunnel));
 
+#ifdef _DEBUG
+DString *str=dstringJson(jstunnel,TRUE);
+
+printf("Parsing tunnel...%s\n",str->string); fflush(stdout);
+
+dsfree(str);
+#endif
+
 	jstunnel=JSON_GET_OBJECT(jstunnel);
 
 	while(jstunnel!=NULL) {
@@ -28,7 +36,16 @@ Tunnel *parseTunnel(JSONDATA *jstunnel,Tunnel *t) {
 		else if (strcmp(jstunnel->json_field,"monitor")==0) t->monitor=&JSON_INFO(jstunnel);
 		jstunnel=jstunnel->next;
 	}
+#ifdef _DEBUG
+printf("Parsed tunnel..."); fflush(stdout);
+#endif
+
 	if ((t->id==NULL)||(t->sourceport==NULL)||(t->destport==NULL)||(t->ip==NULL)||(t->started==NULL)||(t->monitor==NULL)) return NULL;
+
+#ifdef _DEBUG
+printf("IP %s\n",TUNNEL_IP(*t)); fflush(stdout);
+#endif
+
 	return t;
 }
 

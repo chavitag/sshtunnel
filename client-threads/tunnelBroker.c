@@ -41,6 +41,7 @@
 #define IP "127.0.0.1"
 #define PORT 1777 
 #define TIMERENEW	600
+#define MAXBUFFER 100000
 #define REQUEST  "http://%s/service?apikey=api-key-tunnel"
 // #define RESPONSE "http://sshtunnel.xavitag.es/service?do=update&apikey=api-key-tunnel"
 
@@ -116,6 +117,10 @@ int threadCommandTunnel(Tunnel *t, int command) {
 //Clear read...
 	cleanPipe(PIPECOMMREAD);
 
+#ifdef _DEBUG
+printf("PIPING COMMAND %s\n",buffer); fflush(stdout);
+#endif
+
 	write(PIPEWRITE,buffer,strlen(buffer));
 	poll_set.fd=PIPECOMMREAD;
 	poll_set.events = POLLIN;
@@ -146,6 +151,10 @@ int processTunnels(JSONDATA *jstunnels) {
 	int running;
 	int started;
 
+#ifdef _DEBUG
+printf("Processing Tunnels\n"); fflush(stdout);
+#endif
+
 	tunnel=jstunnels;
 	while(tunnel!=NULL) {
 		if (parseTunnel(tunnel,&t)==NULL) return 1;
@@ -170,6 +179,11 @@ int processTunnels(JSONDATA *jstunnels) {
 		}
 		tunnel=tunnel->next;
 	}
+
+#ifdef _DEBUG
+printf("END Processing Tunnels\n"); fflush(stdout);
+#endif
+
 	return 0;
 }
 
@@ -204,6 +218,11 @@ printf("Processing Computers\n"); fflush(stdout);
 #endif
 		computer=nextcomputer;
 	}
+
+#ifdef _DEBUG
+printf("END Processing Computers\n"); fflush(stdout);
+#endif
+
 	return 0;
 }
 
@@ -247,14 +266,22 @@ int doCommand(JSONDATA *action) {
 		while(ids!=NULL) {
 			id=JSON_GET_INT(ids);
 			if ((computer=getComputer(id,&c))!=NULL) {
+#ifdef _DEBUG
+printf("Deleting Computer %s\n",c.ip->string); fflush(stdout);
+#endif
+
 				t.ip=c.ip;
 				if (!threadCommandTunnel(&t, TUNNEL_COMMAND_GET)) {
-					cutNodeJson(computer);
-					freeJson(computer);
+					//cutNodeJson(computer);
+					//freeJson(computer);
+					unregisterComputer(computer);
 				} else ret=2;
 			}
 			ids=JSON_NEXT(ids);
 		}
+#ifdef _DEBUG
+printf("Done DELETE\n"); fflush(stdout);
+#endif
 
 #ifdef WITHPTHREADS
 	pthread_mutex_unlock( &__mutexJSON );
@@ -401,14 +428,18 @@ printf("Recibido comando de un thread %s\n",buffer); fflush(stdout);
 						if (strcmp(params[1],"ON")==0) {										// On Tunnel command
 							if (!running) {
 								monitor=getMonitorPort();
-								if (monitor!=0) onTunnel(monitor,sport,params[4],dport);
+								if (monitor!=0) {
+									onTunnel(monitor,sport,params[4],dport);
+									nanosleep(&ts,NULL);
+									running=verifyTunnel(sport,params[4],&monitor,dport);
+								}
 							}
 						} else if (strcmp(params[1],"OFF")==0) {							// Off Tunnel command
-							if (running) offTunnel(monitor,sport,params[4],dport);
-						}
-						if (strcmp(params[1],"GET")!=0) {	// If command is not "get tunnel status", wait to complete tunnel action and gets status again
-							nanosleep(&ts,NULL);
-							running=verifyTunnel(sport,params[4],&monitor,dport);
+							if (running) {
+								offTunnel(monitor,sport,params[4],dport);
+								nanosleep(&ts,NULL);
+								running=verifyTunnel(sport,params[4],&monitor,dport);
+							}
 						}
 					}
 					write(PIPECOMMWRITE,&monitor,sizeof(monitor));	// Send tunnel status to calling thread
@@ -516,7 +547,7 @@ char *process(char *data,int size) {
 		read and process client's requests from server
 */
 void *doWork(int idthread,void *skd_addr) {
-	char bufrcv[1000000];
+	char bufrcv[MAXBUFFER];
 	char *response;
 	char *errmsg="{\"ok\":false,\"msg\":\"Out of Buffer\"}";
 	long int skd=(long int)skd_addr;
@@ -535,6 +566,9 @@ printf("Recibida petición: %s\n",bufrcv); fflush(stdout);
 #endif
 
 		response=process(bufrcv,sizeof(bufrcv));	// processing request
+#ifdef _DEBUG
+printf("Enviando resposta: %s\n",response); fflush(stdout);
+#endif
 		setsockopt(skd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
 		if (response!=NULL)	flag=send(skd,response,strlen(response),0);	// send response
 		else		    			flag=send(skd,errmsg,strlen(errmsg),0);

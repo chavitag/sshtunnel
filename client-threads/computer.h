@@ -37,6 +37,7 @@ typedef struct tagComputer {
 extern void freeComputers(void);
 extern JSONDATA *computerWalk(JSONDATA *last);
 extern JSONDATA *getComputer(unsigned int id,Computer *c);
+extern void unregisterComputer(JSONDATA *computer);
 extern Computer *registerComputer(JSONDATA *computer,Computer *c);
 extern int getStatusComputer(Computer *c);
 extern Computer *parseComputer(JSONDATA *s_computer,Computer *c);

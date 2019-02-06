@@ -38,6 +38,17 @@ JSONDATA *getComputer(unsigned int id,Computer *c) {
 	return NULL;
 }
 
+/** unregisterComputer
+		Unlink and free a registered node computer
+*/
+void unregisterComputer(JSONDATA *computer) {
+	if ((computer==__computers) && (__computers->next==NULL)) __computers=NULL;
+	else	{
+		if (__computers->prev==computer) __computers->prev=computer->prev;
+		cutNodeJson(computer);
+	}
+	freeJson(computer);
+}
 
 /** Gets computer running status and register in computer's list
 	status: 0 - Off, 1 - Starting, 2 - Running
@@ -64,19 +75,37 @@ printf("%s Exists, updating data\n",COMPUTER_IP(*c)); fflush(stdout);
 		COMPUTER_LASTSCAN(*c)=COMPUTER_LASTSCAN(rc);
 
 		if (old->prev==NULL) { // Only one computer in list
+#ifdef _DEBUG
+printf("Only One node. Setting list nodes to NULL\n"); fflush(stdout);
+#endif
 			freeJson(old);
 			__computers=NULL;
 		} else {
-			if (__computers->prev==old) 	temp=__computers->prev->prev;	// Delete last: new last
+#ifdef _DEBUG
+printf("Unlinking\n"); fflush(stdout);
+#endif
+
+			if (__computers->prev==old) 	temp=old->prev;	// Delete last: new last
 			else 									temp=__computers->prev;			// Delete not last: old last
 			if (temp==__computers) temp=NULL;	// Only remains one node
 			if (old==__computers) {  // Delete first
 				__computers->prev=NULL;
 				__computers=__computers->next;
 			}
+#ifdef _DEBUG
+printf("Cut old node\n"); fflush(stdout);
+#endif
 			cutNodeJson(old);
+
+#ifdef _DEBUG
+printf("Node Unlinked!!!\n"); fflush(stdout);
+#endif
+			if (temp!=NULL) temp->next=NULL;
 			__computers->prev=temp;
 
+#ifdef _DEBUG
+printf("Free old node\n"); fflush(stdout);
+#endif
 			freeJson(old);
 		}
 	} else {
@@ -84,6 +113,10 @@ printf("%s Exists, updating data\n",COMPUTER_IP(*c)); fflush(stdout);
 	}
 
 	// Link New Node
+#ifdef _DEBUG
+printf("Linking new node\n"); fflush(stdout);
+#endif
+
 	if (__computers==NULL) {
 		__computers=computer;
 		__computers->next=NULL;
