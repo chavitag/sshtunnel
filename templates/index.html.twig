@@ -74,11 +74,13 @@
 		//$( "#settings" ).toggle("slow");
 	{% if user.rol.rol == "ADMIN" %}
 		callServer("/list/users","",function(data) {
-			var params={"id":"users","select":"null","modalsize":"modal-1024","data": data};
+			var params={"id":"users","select":"null","modalsize":"modal-1024","data": data,"activerol":"{{user.rol.rol}}"};
 			openModalTemplate('adminUsersForm',"Administración de Usuarios","_modalbody_users",params);
 		});
 	{% else %}
 		var params=JSON.parse($("#login_info").attr("data-user"));
+		params.activerol="{{user.rol.rol}}";
+		params.buttons=[{"id":"newuserbtn","class":"btn btn-primary","txt":"Gardar Usuario","callback":"saveUser"}];
 		callServer("/list/users","",function(data) {
 			openModalTemplate('userUsersForm',"Datos do Usuario","_modalbody_user_form",params);
 		});
@@ -240,6 +242,7 @@ _twig_templates["_modalbody_newservice"]="templates/modals/newservice.body.html.
 _twig_templates["_modalbody_ip"]="templates/modals/computers.body.html.twig";
 _twig_templates["_modalbody_deltunnel"]="templates/modals/deltunnelconfirm.body.html.twig";
 _twig_templates["_modalbody_delcomputer"]="templates/modals/delcomputerconfirm.body.html.twig";
+_twig_templates["_modalbody_deluser"]="templates/modals/deluserconfirm.body.html.twig";
 _twig_templates["_modalbody_statuscomputer"]="templates/modals/statuscomputer.body.html.twig";
 _twig_templates["_modalbody_users"]="templates/modals/users.body.html.twig";
 _twig_templates["_modalbody_user_form"]="templates/modals/user.body.html.twig";

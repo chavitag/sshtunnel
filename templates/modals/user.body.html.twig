@@ -1,16 +1,50 @@
+{% if id is empty or id == "" or id is null %}
+	{% set disabled = "" %}
+{% else %}
+	{% set disabled = "disabled" %}
+{% endif %}	
+
 <form id="dataUserForm">
 	<div class="form-group">
 		<label for="description">Nome</label>
-		<input name="name" value="" class="form-control form-control-sm" type="text" placeholder="Indica nome e apelidos do usuario">
+		<input name="name" value="{{name}}" class="form-control form-control-sm" type="text" placeholder="Indica nome e apelidos do usuario">
 	</div>
 	<div class="form-row">
 		<div class="form-group col-md-6">
 			<label for="username">Nome de Usuario</label>
-			<input name="username" value="" class="form-control form-control-sm" type="text" placeholder="Indica o seu nome de usuario">
+			<input id="username" name="username" value="{{username}}" class="form-control form-control-sm" type="text" placeholder="Indica o seu nome de usuario" {{disabled}}>
 		</div>
 		<div class="form-group col-md-6">
 			<label for="password">Password</label>
-			<input name="password" value="" class="form-control form-control-sm" type="text" placeholder="Indica a súa password">
+			<input name="password" value="{{password}}" class="form-control form-control-sm" type="text" placeholder="Indica a súa password">
 		</div>
 	</div>
+{% if activerol == "ADMIN" %}
+	<div class="form-row">
+		<div class="form-group col-md-8">
+			{% include "widgets/select.html.twig" with 
+				{"idselect":"roles","data":roles, "url":"/list/roles.json", "modalsize":"", "title":"Roles","value":"id","text":"name","rol":activerol}
+			%}
+		</div>
+		<div class="form-group col-md-4">
+			{% if isactive %}
+					{% set checked="checked" %}
+			{% endif %}
+			<input type="checkbox" name="isactive" class="col-md-1" {{checked}}/>
+			<label for="isactive" class="col-md-2">Activo</label>
+		</div>
+	</div>
+{% endif %}
+	<input type="hidden" name="id" value="{{id}}"/>
 </form>
+
+<script>
+	function saveUser() {
+		var data=$("#dataUserForm").serializeJSON();
+		data.username=dataUserForm.username.value;
+		$("#_modal_newuser").modal('hide');
+		messageAlert("Gardando usuario",INFO);
+		callServer("/save/user","params="+JSON.stringify(data),reloadTable,"TABLEUSERS");
+		$('#dataUserForm')[0].reset();
+	}
+</script>

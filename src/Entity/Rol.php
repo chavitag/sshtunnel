@@ -192,10 +192,10 @@ class Rol
 				$init=true;
 			}
 			$row=array("id"=>$r->id,"name"=>$r->name,"rol"=>$r->rol,"selected"=>$sel);
-			if ($r->rol == "ADMIN") {
+			/*if ($r->rol == "ADMIN") {
 				$row["selected"]="true";
 				$row["disabled"]="true";
-			}
+			}*/
 			$data["rows"][]=$row;
 		}
 		return array("all"=>$data,"selected"=>$datas);

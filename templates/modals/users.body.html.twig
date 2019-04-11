@@ -57,9 +57,17 @@
 			rol=user.idrol;
 			title="Edición do Usuario";
 		}
-		var params={"modalsize":"","navfunction":"yes","rol":rol,"id":id,"name":name,"username":username,"password":password,"isactive":isactive,
-						"buttons":[{"id":"newuserbtn","class":"btn btn-primary","txt":"Gardar Usuario","callback":"saveUser"}] };
-		openModalTemplate('newuser',title,"_modalbody_newuser",params);
+
+		callServer("list/roles.json","",function(data) {
+				for(var r in data.rows) {
+					if (data.rows[r].id==rol) {
+						data.rows[r].selected="true";
+					}
+				}
+				var params={"activerol":"{{activerol}}","modalsize":"","navfunction":"yes","rol":rol,"id":id,"name":name,"username":username,"password":password,"isactive":isactive,
+								"roles":data,"buttons":[{"id":"newuserbtn","class":"btn btn-primary","txt":"Gardar Usuario","callback":"saveUser"}] };
+				openModalTemplate('newuser',title,"_modalbody_user_form",params);
+		});
 
 	}
 
@@ -72,9 +80,17 @@
 		$(event.target).prop('disabled',true);
 	}
 
-	function saveUser() {
-	}
-
 	function delUserAction() {
+		var $table=$("#TABLEUSERS");
+		var ids=[];
+		$("#_modal_deluserconfirm").modal("hide");
+		var idx=$table.bootstrapTable("getSelections");
+		idx.forEach(function(item,index) {
+			ids.push(item.id);
+		});
+		if (ids.length > 0)	{
+			messageAlert("Eliminando usuarios...",INFO);
+			callServer("/delete/user","params="+JSON.stringify(ids),reloadTable,"TABLEUSERS");
+		}
 	}
 </script>

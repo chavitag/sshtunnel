@@ -53,7 +53,7 @@
 	function renderServiceRoles(roles,params,context) {
 		context.css({"background-color":"lightgray"});
 		var selectDef={"idselect":"rolport_"+params.id,"data":roles, "url":"/list/service/roles.json","dataQuery":"id="+params.id, "title":"Roles","value":"rol", "text":"name","modalsize":"", "navfunction": "yes", "multiple":"yes","rol":"{{rol}}","onchange":"updateServiceRoles","info":params.id,"template":"_modalbody_roles"};
-		context.html('<div class="row" style="margin:2px;"><div class="col-md-2" style="font-size:1.4em;">Roles: </div><div class="col-md-10">'+renderTemplate("_select_template",selectDef)+'</div></div>');
+		context.html('<div class="row" style="margin:2px;"><div class="col-md-2" style="font-size:1.1em; margin-top:6px;">Roles: </div><div class="col-md-10">'+renderTemplate("_select_template",selectDef)+'</div></div>');
 	}
 
 	function adminServiceRoles(ev,index,row,$detail) {
