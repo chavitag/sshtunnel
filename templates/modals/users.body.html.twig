@@ -1,0 +1,80 @@
+<div class="container" style='height: 409px; font-size: 80%; margin: 0px auto 0px auto; ' >
+{% include "widgets/table.html.twig" with 
+		{	"idtable":"TABLEUSERS",
+			"ajaxurl":ajaxurl,
+			"commandlist":"l_users",
+			"checkbox":true,
+			"detailview":detailview,
+			"clickevent":"selectRow",
+			"rowstyle": "markUserStyle",
+			"buttons": [
+				{"id":"btn-delete","callback":"delUser","txt":"Borrar","class":"btn btn-danger", "status":"disabled", "icon":"fa fa-times" },
+				{"id":"btn-edit","txt": "Editar","class":"btn btn-success", "callback":"editUser", "status":"disabled", "icon":"fa fa-edit" },
+				{"id":"btn-add","txt": "Novo","class":"btn btn-primary", "callback":"newUser", "icon":"fa fa-plus" },
+			],
+			"columns": [
+				{"field":"name","title":"Nome e Apelidos","sortable":"true","width":"65%"},
+				{"field":"username","title":"Nome Usuario","sortable":"true","width":"23%"},
+				{"field":"rol","title":"Rol","sortable":"true","width":"12%"},
+			],
+			"data": data
+		}
+%}
+</div>
+
+<script>
+	function markUserStyle(row,index) {
+		if (!row.isactive) return { 
+			css: {
+	        color: 'lightgray'
+	      }
+		}
+		return {};
+	}
+
+	function editUser() {
+		var $table=$("#TABLEUSERS");
+		var selections=$table.bootstrapTable("getSelections");
+		if (selections.length > 0) {
+			newUser(selections[0]);
+		} 
+	}
+
+	function newUser(user) {
+		var name="";
+		var username="";
+		var rol="";
+		var password="";
+		var isactive="";
+		var title="Novo Usuario";
+
+		if (user !== undefined) {
+			id=user.id;
+			name=user.name;
+			username=user.username;
+			password=user.password;
+			isactive=user.isactive;
+			rol=user.idrol;
+			title="Edición do Usuario";
+		}
+		var params={"modalsize":"","navfunction":"yes","rol":rol,"id":id,"name":name,"username":username,"password":password,"isactive":isactive,
+						"buttons":[{"id":"newuserbtn","class":"btn btn-primary","txt":"Gardar Usuario","callback":"saveUser"}] };
+		openModalTemplate('newuser',title,"_modalbody_newuser",params);
+
+	}
+
+	function delUser() {
+		var $table=$("#TABLEUSERS");
+		var selections=$table.bootstrapTable("getSelections");
+		var params={"users": selections,"onclose":"clearSelectionsUsers",
+						"buttons":[{"id":"deluserbtn","class":"btn btn-primary","txt":"Borrar","callback":"delUserAction"}] };
+		openModalTemplate('deluserconfirm','Está vostede seguro?',"_modalbody_deluser",params);
+		$(event.target).prop('disabled',true);
+	}
+
+	function saveUser() {
+	}
+
+	function delUserAction() {
+	}
+</script>
