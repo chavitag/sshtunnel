@@ -13,6 +13,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 class UserController extends Controller {
@@ -33,8 +34,10 @@ class UserController extends Controller {
 			$entityManager = $this->getDoctrine()->getManager();
 			$entityManager->persist($user);
 			$entityManager->flush();
+		} catch(UniqueConstraintViolationException $e) {
+			return $this->json(array("ok"=>"false","msg"=>"ERROR: O nome de usuario e nick deben ser únicos","code"=>$e->getCode()));
 		} catch (\Exception $e) {
-			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
+			return $this->json(array("ok"=>"false","msg"=>get_class($e).": ".$e->getMessage(),"code"=>$e->getCode()));
 		}
 		return $this->listUsersAction();
 	}
