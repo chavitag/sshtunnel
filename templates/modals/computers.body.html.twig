@@ -111,6 +111,7 @@
 		var ip="";
 		var mac="";
 		var id="";
+		var title="Novo Equipo";
 
 		if (computer !== undefined) {
 			id=computer.id;
@@ -118,11 +119,11 @@
 			domainname=computer.domain;
 			ip=computer.ip;
 			mac=computer.mac;
-			
+			title="Edición de Equipo";
 		}
 		var params={"modalsize":"","navfunction":"yes","rol":"{{user.rol.rol}}","id":id,"description":description,"domainname":domainname,"ip":ip,"mac":mac,
 						"buttons":[{"id":"newcomputerbtn","class":"btn btn-primary","txt":"Gardar Equipo","callback":"saveComputer"}] };
-		openModalTemplate('newcomputer','Novo Equipo',"_modalbody_newcomputer",params);
+		openModalTemplate('newcomputer',title,"_modalbody_newcomputer",params);
 	}
 
 	function editComputer() {

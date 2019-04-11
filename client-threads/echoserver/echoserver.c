@@ -48,10 +48,10 @@ void startServers(int port)
 			// 
 			signal(SIGCHLD, notify_end); 
 			udpechoserver(port); 
-			syslog(LOG_LOCAL7,"UDP server is died!!!");
+			syslog(LOG_INFO,"UDP server is died!!!");
 			exit(0); 
 		case -1:
-			syslog(LOG_LOCAL7,"ERROR starting servers");
+			syslog(LOG_INFO,"ERROR starting servers");
 		  exit(0);
 		default:
 			tcpechoserver(port);
@@ -76,7 +76,7 @@ int udpechoserver(int port) {
 	 */
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0) {
-		syslog(LOG_LOCAL7,"ERROR creating UDP socket");
+		syslog(LOG_INFO,"ERROR creating UDP socket");
 		return 1;
 	}
 
@@ -100,7 +100,7 @@ int udpechoserver(int port) {
 	 * bind: associate the parent socket with a port 
 	 */
 	if (bind(sockfd, (struct sockaddr *)&serveraddr,sizeof(serveraddr)) < 0) {
-		syslog(LOG_LOCAL7,"ERROR binding UDP address");
+		syslog(LOG_INFO,"ERROR binding UDP address");
 		return 1;
 	}
 
@@ -118,7 +118,7 @@ int udpechoserver(int port) {
 		 */
 		n = recvfrom(sockfd, buff, BUFSIZE-1, 0,(struct sockaddr *)&clientaddr, &clientlen);
 		if (n < 0) {
-			syslog(LOG_LOCAL7,"ERROR receiving UDP data");
+			syslog(LOG_INFO,"ERROR receiving UDP data");
 			break;
 		}
 		buff[n]=0;
@@ -132,23 +132,23 @@ int udpechoserver(int port) {
 		 */
 		hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
 		if (hostp == NULL) {
-			syslog(LOG_LOCAL7,"ERROR getting UDP client address");
+			syslog(LOG_INFO,"ERROR getting UDP client address");
 			break;
 		}
 		hostaddrp = inet_ntoa(clientaddr.sin_addr);
 		if (hostaddrp == NULL) {
-			syslog(LOG_LOCAL7,"ERROR can't convert address to a IP string format\n");
+			syslog(LOG_INFO,"ERROR can't convert address to a IP string format\n");
 			break;
 		}
 		snprintf(string,255,"Echo UDP service for %s\n",hostaddrp);
-		syslog(LOG_LOCAL7,string);
+		syslog(LOG_INFO,string);
 		
 		/* 
 		 * sendto: echo the input back to the client 
 		 */
 		n = sendto(sockfd, buff, n, 0, (struct sockaddr *)&clientaddr, clientlen);
 		if (n < 0) {
-			syslog(LOG_LOCAL7,"ERROR sending echo reply");
+			syslog(LOG_INFO,"ERROR sending echo reply");
 			break;
 		}
 	}
@@ -205,28 +205,28 @@ int tcpechoserver(int port) {
 					if (skd!=-1) {
 						hostaddrp = inet_ntoa(addr.sin_addr);
 						if (hostaddrp == NULL) {
-							syslog(LOG_LOCAL7,"ERROR can't convert address to a IP string format\n");
+							syslog(LOG_INFO,"ERROR can't convert address to a IP string format\n");
 							break;
 						}
 						snprintf(string,255,"Echo TCP service for %s\n",hostaddrp);
-						syslog(LOG_LOCAL7,string);
+						syslog(LOG_INFO,string);
 
 						if (pthread_create(&id_thread,NULL,echoTCP,(void *)skd)) {
-							syslog(LOG_LOCAL7,"ERROR thread creation failed");
-							syslog(LOG_LOCAL7,strerror(errno));
+							syslog(LOG_INFO,"ERROR thread creation failed");
+							syslog(LOG_INFO,strerror(errno));
 							close(skd);
 						}
-					} else syslog(LOG_LOCAL7,"ERROR Acepting connection!!!");
+					} else syslog(LOG_INFO,"ERROR Acepting connection!!!");
 				}
 			} else {
-				syslog(LOG_LOCAL7,"Listen Failed!!\n");
+				syslog(LOG_INFO,"Listen Failed!!\n");
 #ifdef _DEBUG
  printf("Error listen %s\n",strerror(errno));  fflush(stdout);
 #endif
 			}
-		} else syslog(LOG_LOCAL7,"Can't bind address\n");
+		} else syslog(LOG_INFO,"Can't bind address\n");
 		close(sk);
-	} else syslog(LOG_LOCAL7,"Can't open socket\n");
+	} else syslog(LOG_INFO,"Can't open socket\n");
 }
 
 void *echoTCP(void *skd_addr) {
@@ -254,12 +254,12 @@ printf("Recibidos datos TCP petición: %s\n",buf); fflush(stdout);
 #endif
 			flag=send(skd,buf,nc,0);
 			if (flag==-1) { // check error
-				syslog(LOG_LOCAL7,"Error enviando datos");
-				syslog(LOG_LOCAL7,strerror(errno));
+				syslog(LOG_INFO,"Error enviando datos");
+				syslog(LOG_INFO,strerror(errno));
 				break;
 			} 
 		} else {
-			syslog(LOG_LOCAL7,"Closing TCP echo");
+			syslog(LOG_INFO,"Closing TCP echo");
 			break;
 		}
 	}
@@ -284,9 +284,11 @@ void main(int argc,char *argv[]) {
 	}
 	if (pid!=0) exit(EXIT_SUCCESS);
 
+	openlog("echoserver", LOG_ODELAY, LOG_LOCAL7);
+
 	sid = setsid();
 	if (sid < 0) {
-		syslog(LOG_LOCAL7,"Error setsid %s\n",strerror(errno));
+		syslog(LOG_INFO,"Error setsid %s\n",strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 #ifndef _DEBUG
@@ -294,5 +296,6 @@ void main(int argc,char *argv[]) {
 	close(STDERR_FILENO);
 #endif
 	startServers(port);
+	closelog();
 	exit(EXIT_SUCCESS);		    
 }

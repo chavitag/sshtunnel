@@ -10,24 +10,6 @@
 	<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.css') }}">
 	<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-table-filter-row.css') }}">
 
-	<style>
-
-	.panel {
-		height: calc( 100% - 180px ); 
-		width: calc( 100% - 80px );
-		border :1px solid black;
-		margin: 0px;
-		padding :4px;
-		position: fixed;
-		top: 100px;
-		left: 40px;
-		display: none;
-		background-color: white;
-		z-index: 2;
-		border: 1px solid black;
-	}
-	</style>
-
 	<script src="{{ asset('assets/manifest.js') }}"></script>
 	<script src="{{ asset('assets/vendor.js') }}"></script>
    <script src="{{ asset('assets/js/twigjs.js') }}"></script>
@@ -42,7 +24,8 @@
 {% endblock %}
 
 {% block logged %}
-	<div class='logged'>
+	<div id='login_info' data-user='{"id":"{{user.id}}","name":"{{user.name}}","username":"{{user.username}}",
+												"rol":{"id":"{{user.rol.id}}","name":"{{user.rol.name}}","rol":"{{user.rol.rol}}"}}' class='logged'>
 		<div style="display: inline-block; margin-right: 20px;">{{user.name}}</div>
 		<div style="display: inline-block; margin-right: 20px;">{{user.rol.name}}</div>
 		<div style="display: inline-block; margin-right: 10px; cursor: pointer;"><i onclick="settings()" class="fa fa-cog"></i></div>
@@ -79,14 +62,6 @@
 	%}
 </div>
 
-<div id="settings" class="panel">
-	{% if user.rol.rol == "ADMIN" %}
-		Admin Panel
-	{% else %}
-		User Panel
-	{% endif %}
-</div>
-
 {% endblock %}
 
 {% block javascripts %}
@@ -96,8 +71,18 @@
 	__select__content["computers"]={{computers|json_encode|raw}};
 
 	function settings() {
-		$( "#settings" ).toggle("slow");
-
+		//$( "#settings" ).toggle("slow");
+	{% if user.rol.rol == "ADMIN" %}
+		callServer("/list/users","",function(data) {
+			var params={"id":"users","select":"null","modalsize":"modal-1024","data": data};
+			openModalTemplate('adminUsersForm',"Administración de Usuarios","_modalbody_users",params);
+		});
+	{% else %}
+		var params=JSON.parse($("#login_info").attr("data-user"));
+		callServer("/list/users","",function(data) {
+			openModalTemplate('userUsersForm',"Datos do Usuario","_modalbody_user_form",params);
+		});
+	{% endif %}
 	}
 
 	/* On/Off tunnel
@@ -256,6 +241,8 @@ _twig_templates["_modalbody_ip"]="templates/modals/computers.body.html.twig";
 _twig_templates["_modalbody_deltunnel"]="templates/modals/deltunnelconfirm.body.html.twig";
 _twig_templates["_modalbody_delcomputer"]="templates/modals/delcomputerconfirm.body.html.twig";
 _twig_templates["_modalbody_statuscomputer"]="templates/modals/statuscomputer.body.html.twig";
+_twig_templates["_modalbody_users"]="templates/modals/users.body.html.twig";
+_twig_templates["_modalbody_user_form"]="templates/modals/user.body.html.twig";
 _twig_templates["_select_template"]="templates/widgets/select.html.twig";
 
 </script>

@@ -42,13 +42,18 @@
 	{% if resizable is defined %}
 	data-resizable="true"
 	{% endif %}
+	{% if rowstyle is defined %}
+	data-row-style="{{rowstyle}}"
+	{% endif %}
 	{% if filterControl is defined and filterControl == true %}
 	data-filter-control="true"
 	{% endif %}
 	data-filter-show-clear="true"
 	data-init="false"
 	data-icons-prefix="fa"
-	data-data='{{ data | json_encode | raw }}'>
+	{% if data is defined %}
+		data-data='{{ data | json_encode | raw }}'>
+	{% endif %}
 </table>
 
 
@@ -67,7 +72,6 @@
 			{% if data is defined and data != null %} 
 				var data={{ data | json_encode | raw }};
 				var datastr=JSON.stringify(data);
-
 				if (params.data.offset==undefined)	{
 					params.success(data);
 					$table.data("data",datastr);

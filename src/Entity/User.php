@@ -218,4 +218,27 @@ class User implements UserInterface, \Serializable
             // $this->salt
         ) = unserialize($serialized, array('allowed_classes' => false));
     }
+
+	public static function arrayUsers($users,$selected=null) {
+		$init=false;
+		if ($selected!=null) $datas=array("total"=>count($selected),"rows"=>array());
+		else 						$datas=array("total"=>0,"rows"=>array());
+		$data=array("total"=>count($users),"rows"=>array());
+		foreach($users as $idx=>$user) {
+			$sel="false";
+			if ($selected!=null) {
+				foreach($selected as $users) {
+					if ($users->id ==  $user->id) {
+						$sel="true";
+						if ($init) break;
+					}
+					if (!$init) $datas["rows"][]=array("id"=>$users->id,"name"=>$users->name,"username"=>$users->username,"rol"=>$users->getRol()->getName(),"idrol"=>$users->getRol()->getId(),"isactive"=>$users->getIsActive());
+				}
+				$init=true;
+			}
+			$row=array("id"=>$user->id,"name"=>$user->name,"username"=>$user->username,"rol"=>$user->getRol()->getName(),"idrol"=>$user->getRol()->getId(),"isactive"=>$user->getIsActive(),"selected"=>$sel);
+			$data["rows"][]=$row;
+		}
+		return array("all"=>$data,"selected"=>$datas);
+	}
 }

@@ -85,8 +85,8 @@ int cleanPipe(int pipe) {
 		if (bytesread > 256) bytesread=256;
 		read(PIPECOMMREAD,kk,bytesread);
 		kk[255]=0;
-		syslog(LOG_LOCAL7,"Trash In Input!!!!");
-		syslog(LOG_LOCAL7,kk);
+		syslog(LOG_INFO,"Trash In Input!!!!");
+		syslog(LOG_INFO,kk);
 		return 1;
 	}
 	return 0;
@@ -100,7 +100,7 @@ int threadCommandTunnel(Tunnel *t, int command) {
 	char buffer[256];
 	struct pollfd poll_set;
 	int retpoll;
-	long int running;
+	long int monitor;
 
 	switch(command) {
 		case TUNNEL_COMMAND_SET:
@@ -124,22 +124,22 @@ printf("PIPING COMMAND %s\n",buffer); fflush(stdout);
 	write(PIPEWRITE,buffer,strlen(buffer));
 	poll_set.fd=PIPECOMMREAD;
 	poll_set.events = POLLIN;
-	running=1;
+	monitor=0;
 	retpoll=poll(&poll_set, 1, 5000);
-	if (retpoll<0) syslog(LOG_LOCAL7,"Error %s\n",strerror(errno));
+	if (retpoll<0) syslog(LOG_INFO,"Error %s\n",strerror(errno));
 	else if (retpoll==1) {
-		read(PIPECOMMREAD,&running,sizeof(running));
+		read(PIPECOMMREAD,&monitor,sizeof(monitor));
 		if (t->started!=NULL) {
-			if (running>0) {
+			if (monitor>=0) {
 				TUNNEL_STARTED(*t)=1;
-				TUNNEL_MONITOR(*t)=running;
-			} else if (running==0) {
+				TUNNEL_MONITOR(*t)=monitor;
+			} else if (monitor<0) {
 				TUNNEL_STARTED(*t)=0;
 				TUNNEL_MONITOR(*t)=0;
 			}
 		}
 	} 
-	return running;
+	return (monitor >= 0);
 }
 
 /** processTunnels
@@ -369,7 +369,9 @@ void testRenew() {
 	char buffer[1024];
 	time_t renewtime;
 
-	onTunnel(62997,63000,"127.0.0.1",1777);		// Service tunnel
+	// Service tunnel
+	//onTunnel(62997,63000,"127.0.0.1",1777);
+	onTunnel(0,63000,"127.0.0.1",1777);
 
 	memset(&poll_set, '\0', sizeof(poll_set));
 	poll_set.fd = PIPEREAD;
@@ -380,7 +382,7 @@ void testRenew() {
 	while(1) {
 		buffer[0]=0;
 		retpoll=poll(&poll_set, 1, TIMERENEW*1000); // Wait command from threads TIMERENEW seconds max.
-		if (retpoll<0) syslog(LOG_LOCAL7,"Error %s\n",strerror(errno));
+		if (retpoll<0) syslog(LOG_INFO,"Error %s\n",strerror(errno));
 		else if (retpoll==1) { // Received command
 			ioctl(poll_set.fd, FIONREAD, &bytesread);  // How much bytes to read ??
 			if (bytesread>1023) bytesread=1023;
@@ -428,9 +430,9 @@ printf("Recibido comando de un thread %s\n",buffer); fflush(stdout);
 						if (strcmp(params[1],"ON")==0) {										// On Tunnel command
 							if (!running) {
 								monitor=getMonitorPort();
-								if (monitor!=0) {
+								if (monitor>=0) {
 									onTunnel(monitor,sport,params[4],dport);
-									nanosleep(&ts,NULL);
+									//nanosleep(&ts,NULL);
 									running=verifyTunnel(sport,params[4],&monitor,dport);
 								}
 							}
@@ -447,7 +449,8 @@ printf("Recibido comando de un thread %s\n",buffer); fflush(stdout);
 			}
 		} else {  // Automatic renew tunnels
 			running=verifyTunnel(63000,"127.0.0.1",&monitor,1777);	// Service tunnel
-			if (!running) onTunnel(62997,63000,"127.0.0.1",1777);
+			//if (!running) onTunnel(62997,63000,"127.0.0.1",1777);
+			if (!running) onTunnel(0,63000,"127.0.0.1",1777);
 			renewData();	// User's tunnels
 			renewtime=time(NULL);
 		}
@@ -463,10 +466,10 @@ void renewData(void) {
 	JSONDATA *jobj;
 	JSONDATA *jstunnels;
 
-	syslog(LOG_LOCAL7,"Refreshing tunnels...");
+	syslog(LOG_INFO,"Refreshing tunnels...");
 	info=http_request(__request,NULL,&size);	// Getting tunnels status from server
 	if (info!=NULL) {
-		// syslog(LOG_LOCAL7,info);
+		// syslog(LOG_INFO,info);
 		jobj=parseJson(info);
 
 		if (jobj!=NULL) {
@@ -573,13 +576,13 @@ printf("Enviando resposta: %s\n",response); fflush(stdout);
 		if (response!=NULL)	flag=send(skd,response,strlen(response),0);	// send response
 		else		    			flag=send(skd,errmsg,strlen(errmsg),0);
 		if (flag==-1) { // check error
-			syslog(LOG_LOCAL7,"Error enviando datos");
-			syslog(LOG_LOCAL7,strerror(errno));
+			syslog(LOG_INFO,"Error enviando datos");
+			syslog(LOG_INFO,strerror(errno));
 		} else {
 			snprintf(bufrcv,sizeof(bufrcv),"Total datos: %d, Enviados: %d\n",strlen(response),flag);
-			syslog(LOG_LOCAL7,bufrcv,strlen(bufrcv));
+			syslog(LOG_INFO,bufrcv,strlen(bufrcv));
 		}
-	} else syslog(LOG_LOCAL7,"Error recibiendo petición");
+	} else syslog(LOG_INFO,"Error recibiendo petición");
 	close(skd);
 }
  
@@ -591,12 +594,12 @@ void waitRequests(int port) {
 	char *errmsg="{\"ok\":false,\"msg\":\"I'm busy, can't process this request\"}";
 
 	if (pipe(__pipefd)==-1) {	// PIPEREAD/PIPEWRITE -> thread sends command to service process
-		syslog(LOG_LOCAL7,"Pipe creation failed\n");
+		syslog(LOG_INFO,"Pipe creation failed\n");
 		exit(0);
 	}
 
 	if (pipe(__pipeComm)==-1) { // PIPECOMMREAD/PIPECOMMWRITE  -> service process send information to a thread
-		syslog(LOG_LOCAL7,"Communication pipe creation failed\n");
+		syslog(LOG_INFO,"Communication pipe creation failed\n");
 		close(__pipefd[0]);
 		close(__pipefd[1]);
 		exit(0);
@@ -616,7 +619,7 @@ void waitRequests(int port) {
 			close(PIPECOMMWRITE);
 			exit(0); 
 		case -1: 
-			syslog(LOG_LOCAL7,"Error forking %s\n",strerror(errno));
+			syslog(LOG_INFO,"Error forking %s\n",strerror(errno));
 			exit(0);
 	}
 	// Father
@@ -643,17 +646,17 @@ void waitRequests(int port) {
 					skd=accept(sk,(struct sockaddr *)&addr,&sz);
 					if (skd!=-1) {
 						if (newThread(doWork,(void *)skd)<0) {	// Create service thread
-							syslog(LOG_LOCAL7,"ERROR thread create");
+							syslog(LOG_INFO,"ERROR thread create");
 							send(skd,errmsg,strlen(errmsg),0);
 							close(skd);
 						}
-					} else syslog(LOG_LOCAL7,"ERROR Acepting connection!!!\n");
+					} else syslog(LOG_INFO,"ERROR Acepting connection!!!\n");
 				}
 			}
-		} else syslog(LOG_LOCAL7,"Can't bind address\n");
+		} else syslog(LOG_INFO,"Can't bind address\n");
 		close(sk);
-	} else syslog(LOG_LOCAL7,"Can't open socket\n");
-	if (joinThreads()!=0) syslog(LOG_LOCAL7,"ERROR IN THREAD");
+	} else syslog(LOG_INFO,"Can't open socket\n");
+	if (joinThreads()!=0) syslog(LOG_INFO,"ERROR IN THREAD");
 	freeComputers();
 	kill(__whoami,SIGKILL);
 	close(PIPEWRITE);
@@ -680,9 +683,12 @@ void main(int argc,char *argv[]) {
 	}
 	if (pid!=0) exit(EXIT_SUCCESS);
 	umask(0);
+
+	openlog("tunnelBroker", LOG_ODELAY, LOG_LOCAL7);
+
 	sid = setsid();
 	if (sid < 0) {
-		syslog(LOG_LOCAL7,"Error setsid %s\n",strerror(errno));
+		syslog(LOG_INFO,"Error setsid %s\n",strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	
@@ -691,5 +697,6 @@ void main(int argc,char *argv[]) {
 
 #endif
 	waitRequests(PORT);
+	closelog();
 	exit(EXIT_SUCCESS);		    
 }

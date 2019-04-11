@@ -217,7 +217,7 @@ int turnOffComputer(char *ip,const char *credentials) {
 
 	if (credentials!=NULL) { 
 		time(&now);
-		syslog(LOG_LOCAL7,"%s -> TRY OFF COMPUTER: %s\n",ctime(&now),ip);
+		syslog(LOG_INFO,"%s -> TRY OFF COMPUTER: %s\n",ctime(&now),ip);
 		// If port 22 is open, must be a Linux computer. 
 		snprintf(buffer,256,"xx=`nmap %s -p 22|grep tcp|grep open`; if [ -z \"$xx\" ]; then exit 0; else exit 1; fi",ip);
 		iswindows=run(buffer);
@@ -236,8 +236,9 @@ int switchOn(char *mac) {
 	time_t now;
 
 	time(&now);
-	snprintf(buffer,256,"/usr/bin/wakeonlan %s",mac);
-	syslog(LOG_LOCAL7,"%s -> ON COMPUTER: %s\n",ctime(&now),buffer);
+	//snprintf(buffer,256,"/usr/bin/wakeonlan %s",mac);
+	snprintf(buffer,256,"netaddr=`/bin/ip a s|grep 'inet [0-9]'|grep global|tr -s ' ' ':'|cut -d: -f5` && for i in ${netaddr}; do /usr/bin/wakeonlan -i ${netaddr} %s; done;",mac);
+	syslog(LOG_INFO,"%s -> ON COMPUTER: %s\n",ctime(&now),buffer);
 	run(buffer);
 	return 0;
 }

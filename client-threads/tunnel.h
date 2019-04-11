@@ -7,6 +7,7 @@
 #define GW "xavi@ssh.xavitag.es"
 #define GW_PORT 22
 
+#define MONITOR0
 #define ECHOPORT 7
 #define DEFAULT_MONITOR_PORT 63999
 

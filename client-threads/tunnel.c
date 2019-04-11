@@ -10,6 +10,11 @@
 #include "dstring.h"
 #include "tunnel.h"
 
+#define MAXTRIES  5
+
+static int portIsOpen(int port);
+static int waitForTunnel(int port);
+
 /** parseTunnel
 		Parses a Json Tunnel. Tunnel fields are pointers to JSON List nodes information fields 
 */
@@ -54,7 +59,7 @@ printf("IP %s\n",TUNNEL_IP(*t)); fflush(stdout);
 */
 int turnOnTunnel(Tunnel *t) {
 	TUNNEL_MONITOR(*t)=getMonitorPort();
-	if (TUNNEL_MONITOR(*t)==0) return -1;
+	if (TUNNEL_MONITOR(*t)<0) return -1;
 	onTunnel(TUNNEL_MONITOR(*t),TUNNEL_SOURCEPORT(*t),TUNNEL_IP(*t),TUNNEL_DESTPORT(*t));
 	TUNNEL_STARTED(*t)=getStatusTunnel(t);
 }
@@ -67,13 +72,24 @@ void onTunnel(int monitor,int sourceport,char *ip,int destport) {
 	time_t now;
 	char echoport[8];
 
+	if (monitor<0) {
+		syslog(LOG_INFO,"Error: Monitor port is < 0");
+		return;
+	}
+
 	if (ECHOPORT!=0) snprintf(echoport,8,":%d",ECHOPORT);
 	else 	echoport[0]=0;
 	time(&now);
-	snprintf(buffer,1024,"/usr/lib/autossh/autossh -f -M %d%s -N -R %d:%s:%d	%s	-p%d", monitor, echoport, sourceport, ip, 
-				destport, GW, GW_PORT);
-	syslog(LOG_LOCAL7,"%s -> ON TUNNEL: %s\n",ctime(&now),buffer);
+	if (monitor > 0) {
+		snprintf(buffer,1024,"/usr/lib/autossh/autossh -f -M %d%s -N -R %d:%s:%d	%s	-p%d", monitor, echoport, sourceport, ip, 
+					destport, GW, GW_PORT);
+	} else {
+		snprintf(buffer,1024,"/usr/lib/autossh/autossh -f -M 0 -N -R %d:%s:%d -o \"ServerAliveInterval 15\" -o \"ServerAliveCountMax 3\" -o \"ConnectTimeout 10\" -o \"ExitOnForwardFailure yes\" %s	-p%d", sourceport, ip, 
+					destport, GW, GW_PORT);
+	}
+	syslog(LOG_INFO,"%s -> ON TUNNEL: %s\n",ctime(&now),buffer);
 	run(buffer);
+	if (!waitForTunnel(monitor)) syslog(LOG_INFO,"Tunnel is not opened yet!!!!!");
 }
 
 /** turnOffTunnel
@@ -96,9 +112,11 @@ void offTunnel(int monitor,int sourceport,char *ip,int destport) {
 	else 	echoport[0]=0;
 	
 	time(&now);
-	snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep \"[M] %d%s -N -R %d:%s:%d\"|tr -s ' '|cut -d' ' -f 4`; if ! [ -z \"$xx\" ]; then pkill -P $xx; fi",
-				monitor,echoport,sourceport,ip,destport);
-	syslog(LOG_LOCAL7,"%s -> OFF TUNNEL: %s\n",ctime(&now),buffer);
+	/*snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep \"[M] %d%s -N -R %d:%s:%d\"|tr -s ' '|cut -d' ' -f 4`; if ! [ -z \"$xx\" ]; then pkill -P $xx; fi",
+				monitor,echoport,sourceport,ip,destport);*/
+	snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep \"[-]R %d:%s:%d\"|tr -s ' '|cut -d' ' -f 4`; if ! [ -z \"$xx\" ]; then pkill -P $xx; fi",
+				sourceport,ip,destport);
+	syslog(LOG_INFO,"%s -> OFF TUNNEL: %s\n",ctime(&now),buffer);
 	run(buffer);  // run shell command
 }
 
@@ -125,11 +143,17 @@ int verifyTunnel(int source,char *ip,long int *monitor,int dest) {
 printf("Testing tunnel %d:%s:%d\n",source,ip,dest);
 #endif
 
-	if (source==0) {
+	/* if (source==0) {
 		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{5\\} \\?[0-9]\\? -N -R [0-9]\\{5\\}:%s:'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",ip);
 	} else {
 		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{5\\} \\?[0-9]\\? -N -R %d:%s:%d'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",source,ip,dest);
+	} */
+	if (source==0) {
+		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{1,5\\} \\?[0-9]\\? -N -R [0-9]\\{5\\}:%s:'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",ip);
+	} else {
+		snprintf(buffer,1024,"xx=`ps -elf|grep autossh|grep  -e '[M] [0-9]\\{1,5\\} \\?[0-9]\\? -N -R %d:%s:%d'|tr -s ' '|cut -d' ' -f17`; if [ -z \"$xx\" ]; then exit 0; else echo $xx; exit 1; fi",source,ip,dest);
 	}
+
 	runStr(buffer,result,1023); // Run shell command and gets an string result
 	if (strlen(result)>0) {
 		*monitor=atoi(result);
@@ -139,7 +163,7 @@ printf("Tunnel running. Monitor port %d\n",*monitor);
 #endif
 
 		return 1;
-	} else *monitor=0;
+	} else *monitor=-1;
 	return 0;
 }
 
@@ -147,23 +171,28 @@ printf("Tunnel running. Monitor port %d\n",*monitor);
 		gets a free monitor port for a new tunnel
 */
 int getMonitorPort(void) {
+#ifdef MONITOR0
+	return 0;
+#else
 	int port=64000;
 	char buffer[256];
 	int status;
 
-	if (ECHOPORT!=0) return DEFAULT_MONITOR_PORT;
+	//if (ECHOPORT!=0) return DEFAULT_MONITOR_PORT;
 
 	do {	// Scan free monitor port
-		port-=2;
+		if (ECHOPORT==0) 	port-=2;
+		else 					port--;
 		snprintf(buffer,256,"xx=`nmap localhost -p %d|grep open`; if [ -z \"$xx\" ]; then exit 0; else exit 1; fi",port);
 		buffer[255]=0;
 		status=run(buffer); // run shell command
 	} while((status)&&(port>62999));
 	if (port<=62999) { // No free port
-		syslog(LOG_LOCAL7,"*** Too Much Tunnels !!!\n");
-		return 0;
+		syslog(LOG_INFO,"*** Too Much Tunnels !!!\n");
+		return -1;
 	}
 	return port;
+#endif
 }
 
 /** JSON_TunnelList
@@ -172,3 +201,34 @@ int getMonitorPort(void) {
 DString *JSON_TunnelList(JSONDATA *jstunnels) {
 	return dstringJson(jstunnels,TRUE);
 }
+
+// ---------------------------------------------------
+//				Private Methods
+// ---------------------------------------------------
+
+/** portIsOpen
+		Returns true if port is open
+*/
+static int portIsOpen(int port){
+	char buffer[256];
+
+	snprintf(buffer,256,"xx=`nmap localhost -p %d|grep open`; if [ -z \"$xx\" ]; then exit 0; else exit 1; fi",port);
+	buffer[255]=0;
+	return run(buffer); // run shell command
+}
+
+/** waitForTunnel
+		Wait MAXTRIES*999999nsec for monitor tunnel port
+*/
+static int waitForTunnel(int port) {
+	struct timespec ts;
+	int tries=0;
+
+	ts.tv_sec=0;
+	ts.tv_nsec=999999;
+	do {
+		nanosleep(&ts,NULL);
+	} while ((!portIsOpen(port))&&(++tries < MAXTRIES));
+	return (tries < MAXTRIES);
+}
+
