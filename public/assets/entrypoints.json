@@ -1,0 +1,122 @@
+{
+  "entrypoints": {
+    "css/bootstrap-select": {
+      "js": [
+        "/assets/runtime.js"
+      ],
+      "css": [
+        "/assets/css/bootstrap-select.css"
+      ]
+    },
+    "js/bootstrap-select": {
+      "js": [
+        "/assets/runtime.js",
+        "/assets/vendor.js",
+        "/assets/js/bootstrap-select.js"
+      ],
+      "css": [
+        "/assets/vendor.css"
+      ]
+    },
+    "js/bootstrap-table-locale-es": {
+      "js": [
+        "/assets/runtime.js",
+        "/assets/vendor.js",
+        "/assets/js/bootstrap-table-locale-es.js"
+      ],
+      "css": [
+        "/assets/vendor.css"
+      ]
+    },
+    "js/bootstrap-table-resizable": {
+      "js": [
+        "/assets/runtime.js",
+        "/assets/vendor.js",
+        "/assets/js/bootstrap-table-resizable.js"
+      ],
+      "css": [
+        "/assets/vendor.css"
+      ]
+    },
+    "js/bootstrap-table-filter-row": {
+      "js": [
+        "/assets/runtime.js",
+        "/assets/vendor.js",
+        "/assets/js/bootstrap-table-filter-row.js"
+      ],
+      "css": [
+        "/assets/vendor.css"
+      ]
+    },
+    "js/utils": {
+      "js": [
+        "/assets/runtime.js",
+        "/assets/vendor.js",
+        "/assets/js/utils.js"
+      ],
+      "css": [
+        "/assets/vendor.css"
+      ]
+    },
+    "js/twigjs": {
+      "js": [
+        "/assets/runtime.js",
+        "/assets/vendor.js",
+        "/assets/js/twigjs.js"
+      ],
+      "css": [
+        "/assets/vendor.css"
+      ]
+    },
+    "js/bootstrap-table": {
+      "js": [
+        "/assets/runtime.js",
+        "/assets/vendor.js",
+        "/assets/js/bootstrap-table.js"
+      ],
+      "css": [
+        "/assets/vendor.css"
+      ]
+    },
+    "css/bootstrap-table": {
+      "js": [
+        "/assets/runtime.js"
+      ],
+      "css": [
+        "/assets/css/bootstrap-table.css"
+      ]
+    },
+    "css/bootstrap-table-fine": {
+      "js": [
+        "/assets/runtime.js"
+      ],
+      "css": [
+        "/assets/css/bootstrap-table-fine.css"
+      ]
+    },
+    "css/bootstrap-table-filter-row": {
+      "js": [
+        "/assets/runtime.js"
+      ],
+      "css": [
+        "/assets/css/bootstrap-table-filter-row.css"
+      ]
+    },
+    "css/main": {
+      "js": [
+        "/assets/runtime.js"
+      ],
+      "css": [
+        "/assets/css/main.css"
+      ]
+    },
+    "css/onoff": {
+      "js": [
+        "/assets/runtime.js"
+      ],
+      "css": [
+        "/assets/css/onoff.css"
+      ]
+    }
+  }
+}
