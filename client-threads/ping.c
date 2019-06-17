@@ -23,6 +23,7 @@ static int send_packet(int sockfd,pid_t pid,struct sockaddr_in *dest_addr);
 static int recv_packet(int sockfd,pid_t pid,int nsend,struct sockaddr_in *from);
 static int unpack(pid_t pid,char *buf, int len);
 
+
 /** isAlive
 		Determine if a ip host is alive by icmp packets (ping)
 */

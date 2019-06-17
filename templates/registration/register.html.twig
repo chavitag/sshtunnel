@@ -1,4 +1,7 @@
 {# templates/registration/register.html.twig #}
+{% form_theme form 'registration/formTheme.twig' %}
+
+
 
 {{ form_start(form) }}   
     {{ form_row(form.name) }}

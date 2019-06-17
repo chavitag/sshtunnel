@@ -1,13 +1,13 @@
 #ifndef __TUNNELH__
 #define __TUNNELH__
 
-//#define GW "gateway@shuttle.iesrodeira.com"
-//#define GW_PORT 27
+#define GW "gateway@shuttle.iesrodeira.com"
+#define GW_PORT 27
 
-#define GW "xavi@ssh.xavitag.es"
-#define GW_PORT 22
+//#define GW "xavi@ssh.xavitag.es"
+//#define GW_PORT 22
 
-#define MONITOR0
+//#define MONITOR0
 #define ECHOPORT 7
 #define DEFAULT_MONITOR_PORT 63999
 
@@ -26,6 +26,9 @@ typedef struct tagTunnel {
 	VALUEJSON *started;
 	VALUEJSON *monitor;
 } Tunnel; 
+
+extern char *_GW;
+extern int _GW_PORT;
 
 extern Tunnel *parseTunnel(JSONDATA *jstunnel,Tunnel *t);
 int getMonitorPort(void);

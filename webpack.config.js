@@ -6,15 +6,11 @@ Encore
     // the public path used by the web server to access the previous directory
     .setPublicPath('/assets')
     .cleanupOutputBeforeBuild()
+    .enableSingleRuntimeChunk()
     .enableSourceMaps(!Encore.isProduction())
     // uncomment to create hashed filenames (e.g. app.abc123.css)
     // .enableVersioning(Encore.isProduction())
-    .createSharedEntry('vendor', [
-        'jquery',
-        'bootstrap',
-        'bootstrap/scss/bootstrap.scss',
-        'font-awesome/scss/font-awesome.scss'
-	 ])
+    .createSharedEntry('vendor','./vendor_shared_entries.js')
     .addStyleEntry('css/bootstrap-select','bootstrap-select/sass/bootstrap-select.scss')
     .addStyleEntry('css/bootstrap-table','bootstrap-table/dist/bootstrap-table.min.css')
     .addStyleEntry('css/bootstrap-table-fine','./assets/css/bootstrap-table-fine.css')

@@ -34,6 +34,7 @@
 #include "computer.h"
 #include "tunnel.h"
 #include "json.h"
+#include "runcmd.h"
 
 #define true 1
 #define false 0
@@ -57,6 +58,7 @@ int __pipeComm[2];
 pid_t __whoami;	// 0, son. PID_SON, father
 int __quit=0; 
 
+int threadCommand(char *command,void *response,int szresponse);
 int processTunnels(JSONDATA *jstunnels);
 int processComputers(JSONDATA *jscomputers);
 int doCommand(JSONDATA *action);
@@ -91,6 +93,38 @@ int cleanPipe(int pipe) {
 	}
 	return 0;
 }
+
+/** threadCommand
+		Execute a bash control command sending order by a communications pipe against intial forked process
+		MUST BE LOCKED (Thread Sync)
+*/
+int threadCommand(char *command,void *response,int szresponse) {
+	struct pollfd poll_set;
+	int retpoll;
+
+	cleanPipe(PIPECOMMREAD);
+
+#ifdef _DEBUG
+printf("SENDING PIPED COMMAND %s\n",command); fflush(stdout);
+#endif
+
+	write(PIPEWRITE,command,strlen(command));
+	poll_set.fd=PIPECOMMREAD;
+	poll_set.events = POLLIN;
+	retpoll=poll(&poll_set, 1, 5000);
+	if (retpoll<0) syslog(LOG_INFO,"Error %s\n",strerror(errno));
+	else if (retpoll==1) {
+		read(PIPECOMMREAD,response,szresponse);
+
+#ifdef _DEBUG
+printf("COMMAND RESPONSE RECEIVED\n"); fflush(stdout);
+#endif
+
+		return 1;
+	} 
+	return 0;
+}
+
 
 /** threadCommandTunnel
 		Execute a tunnel bash control command sending order by a communications pipe against intial forked process
@@ -205,6 +239,10 @@ printf("Processing Computers\n"); fflush(stdout);
 		nextcomputer=computer->next;
 		cutNodeJson(computer);
 
+#ifdef _DEBUG
+printf("Getting status for %s\n",COMPUTER_IP(c)); fflush(stdout);
+#endif
+
 // Needs Lock
 //
 #ifdef WITHPTHREADS
@@ -216,6 +254,11 @@ printf("Processing Computers\n"); fflush(stdout);
 #ifdef WITHPTHREADS
 	pthread_mutex_unlock( &__mutexJSON );
 #endif
+
+#ifdef _DEBUG
+printf("Next Computer\n"); fflush(stdout);
+#endif
+
 		computer=nextcomputer;
 	}
 
@@ -287,6 +330,26 @@ printf("Done DELETE\n"); fflush(stdout);
 	pthread_mutex_unlock( &__mutexJSON );
 #endif 
 
+	} else if (strcmp(command,"lock_computer")==0) {
+		char buffer[256];
+		int nst;
+
+// Needs Lock 	
+//
+#ifdef WITHPTHREADS
+	pthread_mutex_lock( &__mutexJSON );
+#endif
+		if ((computer=getComputer(id,&c))!=NULL) {
+			if (status)	snprintf(buffer,256,"COMPUTER*LOCK*%s",COMPUTER_IP(c));
+			else snprintf(buffer,256,"COMPUTER*UNLOCK*%s",COMPUTER_IP(c));
+			threadCommand(buffer,&nst,sizeof(int));
+			ret=0;
+		}
+
+#ifdef WITHPTHREADS
+	pthread_mutex_unlock( &__mutexJSON );
+#endif 
+		
 	} else if (strcmp(command,"change_computer_status")==0) {	// On/Off computer
 		char buffer[256];
 		struct timespec req;
@@ -370,8 +433,8 @@ void testRenew() {
 	time_t renewtime;
 
 	// Service tunnel
-	//onTunnel(62997,63000,"127.0.0.1",1777);
-	onTunnel(0,63000,"127.0.0.1",1777);
+	onTunnel(62997,63000,"127.0.0.1",1777);
+	//onTunnel(0,63000,"127.0.0.1",1777);
 
 	memset(&poll_set, '\0', sizeof(poll_set));
 	poll_set.fd = PIPEREAD;
@@ -394,10 +457,6 @@ void testRenew() {
 				read(poll_set.fd,buffer,bytesread);
 				buffer[bytesread]=0;
 
-#ifdef __DEBUG
-printf("Recibido comando de un thread %s\n",buffer); fflush(stdout);
-#endif
-
 				// Parsing Command
 				token=strtok(buffer,"*");
 				while((token!=NULL)&&(pos<6)) {
@@ -409,8 +468,19 @@ printf("Recibido comando de un thread %s\n",buffer); fflush(stdout);
 				if (strcmp(params[0],"COMPUTER")==0) {	// Computer command
 					if (strcmp(params[1],"ON")==0) {						// On computer
 						switchOn(params[2]);
-					} else {														// Off computer
+					} else  if (strcmp(params[1],"OFF")==0) {														// Off computer
 						turnOffComputer(params[2],params[3]);
+					} else if (strcmp(params[1],"LOCKSTATUS")==0) {
+						//snprintf(buffer,sizeof(buffer),"iptables -L -n|grep DROP |grep %s",params[2]);
+						//running=(run(buffer)==0);
+						running=checkLocked(params[2]);
+						write(PIPECOMMWRITE,&running,sizeof(running));
+					} else if (strcmp(params[1],"LOCK")==0) {
+						running=(lockComputer(params[2])==0);
+						write(PIPECOMMWRITE,&running,sizeof(running));
+					} else if (strcmp(params[1],"UNLOCK")==0) {
+						running=(unlockComputer(params[2])!=0);
+						write(PIPECOMMWRITE,&running,sizeof(running));
 					}
 				} else	if (strcmp(params[0],"TUNNEL")==0) {  // Tunnel command
 					struct timespec ts;
@@ -675,6 +745,13 @@ void main(int argc,char *argv[]) {
 		exit(0);
 	}
 	snprintf(__request,sizeof(__request),REQUEST,argv[1]);
+
+	_GW=getenv("TUNNELGW");
+	if (_GW==NULL) {
+		printf("TUNNELGW and TUNNELPORT env variables must be defined.\n");
+		exit(0);
+	}
+	_GW_PORT=atoi(getenv("TUNNELPORT"));
 
 #ifndef _DEBUG
 	

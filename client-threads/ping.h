@@ -8,4 +8,5 @@
 
 extern int isAlive(char *ip);
 
+
 #endif

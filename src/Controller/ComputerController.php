@@ -134,6 +134,34 @@ class ComputerController extends FacadeController {
 	}
 
 	/** 
+	* @Route("/change/lockcomputer", name="lk_computer")
+	*/
+	public function lockComputerAction(Request $request) {
+		try {
+			if ($request!=null) {
+				// Verificar si queremos bloquearlo
+				$computerid=$request->request->get("id");
+				$data=array();
+				if ($computerid!=null) {
+					$computerstatus=$request->request->get("status");
+
+					$command=array("ok"=>true);
+					$command["action"]=array("command"=>"lock_computer","id"=>intval($computerid),"status"=>($computerstatus=="true"));
+					
+					$entityManager = $this->getDoctrine()->getManager();
+					$computer=$entityManager->find("App\Entity\Computer",$computerid);
+					if ($computer!=null) $this->computerCommand(array($computer),$command);
+
+					return $this->listComputersAction();
+				}
+			}
+			throw new Exception("Equipo descoñecido");
+		} catch(\Exception $e) {
+			return $this->json(array("ok"=>"false","msg"=>$e->getMessage(),"code"=>$e->getCode()));
+		}
+	}
+
+	/** 
 	* @Route("/change/switchcomputer", name="sw_computer")
 	*/
 	public function switchComputerAction(Request $request) {
@@ -190,7 +218,7 @@ class ComputerController extends FacadeController {
 						$idx=0;
 						while($idx<count($data->computers)) {
 							if ($data->computers[$idx]->id == $host->getId()) {
-								$status=array("total"=>1,"rows"=>array(array("id"=>$host->getId(),"domain"=>$host->getDomainname(),"ip"=>$host->getIp(),"description"=>$host->getDescription(),"mac"=>$host->getMac(),"running"=>$data->computers[$idx]->status,"startTime"=>$data->computers[$idx]->startTime)));
+								$status=array("total"=>1,"rows"=>array(array("id"=>$host->getId(),"domain"=>$host->getDomainname(),"ip"=>$host->getIp(),"description"=>$host->getDescription(),"mac"=>$host->getMac(),"running"=>$data->computers[$idx]->status,"locked"=>$data->computers[$idx]->locked,"startTime"=>$data->computers[$idx]->startTime)));
 								return $this->json($status);
 							}
 							$idx++;
@@ -233,6 +261,7 @@ class ComputerController extends FacadeController {
 						$computer->setStatus($c->status);
 						$computer->setStartTime($c->startTime); 
 						$computer->setScan(false);
+						$computer->setLocked($c->locked);
 						$computer->setLastScan($c->lastscan);
 					} else throw new \Exception("O Equipo ".$c->ip." (".$c->id.") non existe ");
 				}
@@ -263,6 +292,7 @@ class ComputerController extends FacadeController {
 				$command["computers"][$idx]["startTime"]=0;
 				$command["computers"][$idx]["scan"]=0;
 				$command["computers"][$idx]["lastscan"]=0;
+				$command["computers"][$idx]["locked"]=$computer->getLocked();
 			}
 
 			$socket=new Socket(FacadeController::$config["COMMIP"],FacadeController::$config["COMMPORT"]);
@@ -278,6 +308,7 @@ class ComputerController extends FacadeController {
 					if ($computer!=null) {
 						$computer->setStatus($c->status);
 						$computer->setStartTime($c->startTime);
+						$computer->setLocked($c->locked);
 					} else throw new \Exception("O Equipo ".$c->ip." (".$c->id.") non existe ");
 				}
 			} else throw new \Exception($data->msg);

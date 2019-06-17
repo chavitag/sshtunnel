@@ -63,6 +63,8 @@ class Computer
 
 	 private $lastscan;
 
+	 private $locked;
+
     public function __construct()
     {
 //$this->session = new Session();
@@ -72,6 +74,7 @@ class Computer
 		$this->status = false;
 		$this->roles = new ArrayCollection();
 		$this->tunnels = new ArrayCollection();
+		$this->locked=false;
     }
 
     public function getId()
@@ -230,6 +233,14 @@ class Computer
 		$this->lastscan=$time;
 	}
 
+	public function setLocked($lock) {
+		$this->locked=$lock;
+	}
+
+	public function getLocked() {
+		return $this->locked;
+	}
+
 	/** Gets available user computers, and returns an associative array formatted for bootstrap-table
 	*/
 	public static function getComputers($user) {
@@ -237,7 +248,7 @@ class Computer
 		$computers=$user->getRol()->getComputers();
 		$data=array("total"=>count($computers),"rows"=>array());
 		foreach($computers as $c) {
-			$row=array("id"=>$c->getId(),"domain"=>$c->getDomainname(),"ip"=>$c->getIp(),"description"=>$c->getDescription(),"mac"=>$c->getMac(),"status"=>$c->getStatus(),"startTime"=>$c->getStartTime(),"scan"=>false,"lastScan"=>$c->getLastScan());
+			$row=array("id"=>$c->getId(),"domain"=>$c->getDomainname(),"ip"=>$c->getIp(),"description"=>$c->getDescription(),"mac"=>$c->getMac(),"status"=>$c->getStatus(),"startTime"=>$c->getStartTime(),"scan"=>false,"locked"=>$c->locked,"lastScan"=>$c->getLastScan());
 			$data["rows"][]=$row;
 		}
 		return $data;

@@ -14,6 +14,10 @@
 static JSONDATA *__computers=NULL;		// Computer's circular list to keep computer's status
 
 
+extern void *threadCommand(char *command,void *response,int szresponse);
+
+unsigned char isLocked(char *ip);
+
 void freeComputers(void) {
 	if (__computers!=NULL) freeJson(__computers);
 	__computers=NULL;
@@ -68,11 +72,13 @@ printf("Registering new Computer %s\n",COMPUTER_IP(*c)); fflush(stdout);
 
 #ifdef _DEBUG
 printf("%s Exists, updating data\n",COMPUTER_IP(*c)); fflush(stdout);
+printf("LOCKED\n",COMPUTER_LOCKED(*c)); fflush(stdout);
 #endif
 
 		COMPUTER_STATUS(*c)=COMPUTER_STATUS(rc);
 		COMPUTER_STARTTIME(*c)=COMPUTER_STARTTIME(rc);
 		COMPUTER_LASTSCAN(*c)=COMPUTER_LASTSCAN(rc);
+		COMPUTER_LOCKED(*c)=COMPUTER_LOCKED(rc);
 
 		if (old->prev==NULL) { // Only one computer in list
 #ifdef _DEBUG
@@ -143,9 +149,14 @@ int getStatusComputer(Computer *c) {
 	int alive;
 
 #ifdef _DEBUG
-printf("Comprobando estado o equipo ");
+printf("Comprobando estado do equipo ");
 printf(COMPUTER_IP(*c));
 printf("\n"); fflush(stdout);
+#endif
+
+	COMPUTER_LOCKED(*c)=isLocked(COMPUTER_IP(*c));
+#ifdef _DEBUG
+   printf("Locked: %d \n",COMPUTER_LOCKED(*c));  fflush(stdout);
 #endif
 
 	// Check Computer status...
@@ -166,6 +177,7 @@ printf("\n"); fflush(stdout);
 			} else COMPUTER_STATUS(*c)=STOPPED;
 		}
 	}
+
 	return COMPUTER_STATUS(*c);
 }
 
@@ -195,7 +207,7 @@ Computer *parseComputer(JSONDATA *s_computer,Computer *c) {
 			else if (strcmp(computer->json_field,"startTime")==0) c->startTime=&JSON_INFO(computer);
 			else if (strcmp(computer->json_field,"lastscan")==0) c->lastscan=&JSON_INFO(computer);
 			else if (strcmp(computer->json_field,"scan")==0) c->scan=&JSON_INFO(computer);
-
+			else if (strcmp(computer->json_field,"locked")==0) c->locked= &JSON_INFO(computer);
 			computer=computer->next;
 		} while(computer!=NULL);
 		if ((c->id==NULL)||(c->ip==NULL)) return NULL;
@@ -229,6 +241,46 @@ int turnOffComputer(char *ip,const char *credentials) {
 	}
 }
 
+unsigned char checkLocked(char *ip) {
+	char buffer[256];
+	int x=0;
+
+	snprintf(buffer,sizeof(buffer),"iptables -L |grep DROP|grep %s",ip);
+	x=run(buffer);
+	return (x?0:1);
+}
+
+/** isLocked
+		Determine if a computer/network is locked
+*/
+unsigned char isLocked(char *ip) {
+	char buffer[256];
+	int x=0;
+
+#ifdef _DEBUG
+printf("Comprobando si está bloqueado %s",ip);
+printf("\n"); fflush(stdout);
+#endif
+
+	snprintf(buffer,256,"COMPUTER*LOCKSTATUS*%s",ip);
+	threadCommand(buffer,&x,sizeof(int));
+
+#ifdef _DEBUG
+printf("Locked Status  %d\n",x); fflush(stdout);
+#endif
+	
+	return x;
+}
+
+/** Locks (DROP) computer in iptables OUTPUT chain 
+*/
+int lockComputer(char *ip) {
+	char buffer[256];
+	snprintf(buffer,256,"iptables -A OUTPUT -d %s -j DROP",ip);
+	syslog(LOG_INFO,"%s -> LOCK \n",ip);
+	return run(buffer);
+}
+
 /** Switchs Computer On
 */
 int switchOn(char *mac) {
@@ -241,6 +293,15 @@ int switchOn(char *mac) {
 	syslog(LOG_INFO,"%s -> ON COMPUTER: %s\n",ctime(&now),buffer);
 	run(buffer);
 	return 0;
+}
+
+/** unLocks (DROP) deleting iptables OUTPUT chain rule
+*/
+int unlockComputer(char *ip) {
+	char buffer[256];
+	snprintf(buffer,256,"iptables -D OUTPUT -d %s -j DROP",ip);
+	syslog(LOG_INFO,"%s -> UNLOCK \n",ip);
+	return run(buffer);
 }
 
 /** JSON_ComputerList

@@ -18,6 +18,7 @@
 #define COMPUTER_DESCRIPTION(cinfo)	((cinfo).description->string)
 #define COMPUTER_MAC(cinfo)			((cinfo).mac->string)
 #define COMPUTER_STATUS(cinfo)		((cinfo).status->intNumber)
+#define COMPUTER_LOCKED(cinfo)		((cinfo).locked->boolean)
 #define COMPUTER_STARTTIME(cinfo)	((cinfo).startTime->intNumber)
 #define COMPUTER_LASTSCAN(cinfo)		((cinfo).lastscan->intNumber)
 #define COMPUTER_SCAN(cinfo)			((cinfo).scan->boolean)
@@ -29,10 +30,13 @@ typedef struct tagComputer {
 	VALUEJSON *description;
 	VALUEJSON *mac;
 	VALUEJSON *status;	// STOPPED,STARTING,RUNNING
+	VALUEJSON *locked;	// IPTABLES  OUTPUT -j DROP
 	VALUEJSON *startTime;
 	VALUEJSON *lastscan;
 	VALUEJSON *scan;	// 0 not check status, 1 check status
 } Computer;
+
+extern unsigned char checkLocked(char *ip);
 
 extern void freeComputers(void);
 extern JSONDATA *computerWalk(JSONDATA *last);
@@ -42,7 +46,10 @@ extern Computer *registerComputer(JSONDATA *computer,Computer *c);
 extern int getStatusComputer(Computer *c);
 extern Computer *parseComputer(JSONDATA *s_computer,Computer *c);
 int switchOn(char *mac);
+extern int unlockComputer(char *ip);
 extern int turnOffComputer(char *ip,const char *credentials);
+extern int lockComputer(char *ip);
+
 extern DString *JSON_ComputerList(void);
 
 #endif

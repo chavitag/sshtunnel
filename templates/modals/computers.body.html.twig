@@ -10,6 +10,7 @@
 	{% set ajaxurl="/status/computers" %}
 {% endif %}
 
+
 <div class="container" style='height: 409px; font-size: 80%; margin: 0px auto 0px auto; ' >
 {% if rol == "ADMIN" %}
 	{% include "widgets/table.html.twig" with 
@@ -31,6 +32,7 @@
 				{"field":"ip","title":"Dirección IP","sortable":"true","width":"12%"},
 				{"field":"mac","title":"Dirección MAC","sortable":"true","width":"19%"},
 				{"field":"status","formatter":"statusFormatterComputerButton","title":"Estado","width":"78px"},
+				{"field":"locked","formatter":"lockComputerButton","title":"Bloqueado","width":"78px"},
 			],
 			"data": data
 		}
@@ -172,6 +174,42 @@
 			messageAlert(e,ERROR);
 		}
 	}
+
+	function lockComputerByRow(event,sw,id,running) {
+		if ("{{rol}}"=="ADMIN") {
+			var $table=$("#__table__{{id}}");
+			var row=$(sw).closest("#__table__{{id}} tr");
+			var idx=$(row).data("index"); 
+
+			try {
+				var data=JSON.parse($table.data("data"));
+				//callServer("/change/lockcomputer","id="+id+"&ip="+data.rows[idx].ip+"&status="+running,reloadTable,"__table__{{id}}");
+				callServer("/change/lockcomputer","id="+id+"&ip="+data.rows[idx].ip+"&status="+running,function(data) {
+					$("#alertbody").alert("close");
+				});
+			} catch(e) {
+				messageAlert(e,ERROR);
+			}
+		}
+	}
+
+{% if switch == "off" %}
+	function lockComputerButton(value,row,index,field) {
+		var html="<button type=\"button\" onclick=\"verifyComputer('"+row.domain+" ["+row.ip+"]')\" class=\"btn btn-info\">Verificar</button>";
+		return html;
+	}
+{% else %}
+	function lockComputerButton(value,row,index,field) {
+		var html="{{ include("templates/widgets/switch.html.twig",{"id":"%rowid%", "name": "lockcomputer", "checked":"%status%","runningclass":"onoffswitch-lock","callback":"lockComputerByRow" }) | escape("js") }}";
+		if (value) {
+			html=html.replace(/%status%/g,"checked");
+		} else {
+			html=html.replace(/%status%/g,"");
+		}
+		html=html.replace(/%rowid%/g,row.id);
+		return html;
+	}
+{% endif %}
 
 {% if switch == "off" %}
 	function statusFormatterComputerButton(value,row,index,field) {

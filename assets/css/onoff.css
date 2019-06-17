@@ -32,15 +32,27 @@
 }
 
 .onoffswitch-running .onoffswitch-inner:before {
-    content: "Start";
+    content: "Starting";
     padding-left: 10px;
     background-color: #ce5c00; color: #FFFFFF;
+	font-size: 0.6em;
 }
 
 .onoffswitch-stopping .onoffswitch-inner:before {
-    content: "Stop";
+    content: "Stopping";
     padding-left: 10px;
     background-color: #e9b96e; color: #FFFFFF;
+	font-size: 0.6em;
+}
+
+.onoffswitch-lock .onoffswitch-inner:before {
+    content: "Locked";
+    background-color: #ef2929; color: #FFFFFF;
+	font-size: 0.6em;
+}
+
+.onoffswitch-lock .onoffswitch-inner:after {
+	content: "Open";
 }
 
 .onoffswitch-inner:after {
