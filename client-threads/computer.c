@@ -245,9 +245,10 @@ unsigned char checkLocked(char *ip) {
 	char buffer[256];
 	int x=0;
 
-	snprintf(buffer,sizeof(buffer),"iptables -L |grep DROP|grep %s",ip);
+	snprintf(buffer,sizeof(buffer),"iptables -L -n |grep DROP|grep \"%s \"",ip);
 	x=run(buffer);
-	return (x?0:1);
+	syslog(LOG_INFO,"%s : %d",buffer,x);
+	return ((x==1)?0:1);
 }
 
 /** isLocked
