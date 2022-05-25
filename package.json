@@ -2,7 +2,7 @@
     "devDependencies": {
         "@symfony/webpack-encore": "^0.27.0",
         "bootstrap": "^4.3.1",
-        "bootstrap-table": "^1.14.2",
+        "bootstrap-table": "^1.20.2",
         "jquery": "^3.4.1",
         "jquery-ui": "^1.12.1",
         "node-sass": "^4.12.0",
